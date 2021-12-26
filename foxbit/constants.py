@@ -1,0 +1,1 @@
+URI = 'wss://api.foxbit.com.br/'
