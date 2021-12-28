@@ -9,7 +9,7 @@ class Queue(object):
     self.__head = None
     self.__size = 0
 
-  def add(self, value):
+  def push(self, value):
     node = Node(value)
     self.__size += 1
 
