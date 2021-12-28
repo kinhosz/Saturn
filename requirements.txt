@@ -1,0 +1,14 @@
+aiohttp==3.8.1
+aiosignal==1.2.0
+async-timeout==4.0.2
+asyncio==3.4.3
+attrs==21.2.0
+charset-normalizer==2.0.9
+frozenlist==1.2.0
+idna==3.3
+multidict==5.2.0
+python-dotenv==0.19.2
+telepot==12.7
+urllib3==1.26.7
+websockets==10.1
+yarl==1.7.2
