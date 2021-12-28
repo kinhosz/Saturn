@@ -123,7 +123,7 @@ class Treap(object):
 
     t = p.node
 
-    if t.key < key:
+    if t.key <= key:
       return self.__getSize(t.pl) + self.__prefix(t.pr, key) + 1
     else:
       return self.__prefix(t.pl, key)
