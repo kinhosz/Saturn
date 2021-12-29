@@ -1,6 +1,7 @@
 from algorithms import Queue
 import telegram
-from session import UserSession
+import session
+import asyncio
 
 class Manager(object):
   def __init__(self):
@@ -20,16 +21,16 @@ class Manager(object):
       for i in range(buffer_sz):
         message = self.__buffer.front()
         self.__buffer.pop()
-        self.__dispatch(message)
+        await self.__dispatch(message)
       
       await asyncio.sleep(DELAY_FOR_WAIT_MESSAGES_IN_SECONDS)
 
   def getBuffer(self):
     return self.__buffer
 
-  def __dispatch(self, message):
-    if 'message' in update.keys():
-      message = update['message']
+  async def __dispatch(self, message):
+    if 'message' in message.keys():
+      message = message['message']
     else:
       return None
 
@@ -48,7 +49,7 @@ class Manager(object):
     pass
 
   def __createSession(self, chat_id):
-    uSession = UserSession(chat_id)
+    uSession = session.UserSession(chat_id)
     uSession.setCallback(self.__callback)
     buffer = uSession.getBuffer()
     task = asyncio.create_task(uSession.listen())

@@ -1,5 +1,6 @@
 import telepot
 import asyncio
+import os
 
 class TServer(object):
   def __init__(self):
@@ -9,7 +10,7 @@ class TServer(object):
     DELAY_FOR_RECEIVE_MESSAGES_IN_SECONDS = 1
 
     current_id = 0
-    response = tbot.getUpdates()
+    response = self.__tbot.getUpdates()
 
     if len(response) > 0:
       current_id = response[-1]['update_id'] + 1

@@ -13,4 +13,4 @@ async def render():
   tasks.append(asyncio.create_task(tServer.listen(manager.getBuffer())))
   tasks.append(asyncio.create_task(manager.listen()))
 
-  asyncio.gather(*tasks)
+  await asyncio.gather(*tasks)
