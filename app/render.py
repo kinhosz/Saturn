@@ -1,8 +1,16 @@
-import foxbit
-import websockets
-import app
+import asyncio
+from telegram import TServer
+from session import Manager
 
 async def render():
-  async with websockets.connect(foxbit.URI) as websocket:
-    fb = foxbit.Foxbit(websocket)
-    await app.main(fb)
+  tServer = TServer()
+  manager = Manager()
+
+  manager.setSender(tServer.getSender())
+
+  tasks = []
+
+  tasks.append(asyncio.create_task(tServer.listen(manager.getBuffer())))
+  tasks.append(asyncio.create_task(manager.listen()))
+
+  asyncio.gather(*tasks)
