@@ -5,15 +5,15 @@ import asyncio
 
 class Manager(object):
   def __init__(self):
-    self.__sender = None
+    self.__serverBuffer = None
     self.__buffer = Queue()
     self.__activeSessions = {}
 
-  def setSender(self, sender):
-    self.__sender = sender
+  def setServerBuffer(self, sb):
+    self.__serverBuffer = sb
 
   async def listen(self):
-    DELAY_FOR_WAIT_MESSAGES_IN_SECONDS = 1
+    DELAY_FOR_WAIT_MESSAGES_IN_SECONDS = 0.1
 
     while True:
       buffer_sz = self.__buffer.size()
@@ -21,12 +21,27 @@ class Manager(object):
       for i in range(buffer_sz):
         message = self.__buffer.front()
         self.__buffer.pop()
-        await self.__dispatch(message)
+        await self.__handleResponse(message)
       
       await asyncio.sleep(DELAY_FOR_WAIT_MESSAGES_IN_SECONDS)
 
   def getBuffer(self):
     return self.__buffer
+
+  async def __sendToServer(self, chat_id, message):
+    self.__serverBuffer.push({
+      "from": "manager",
+      "data": {
+        "id": chat_id,
+        "message": message
+      }
+    })
+
+  async def __handleResponse(self, response):
+    if response["from"] == "telegram":
+      await self.__dispatch(response["data"])
+    elif response["from"] == "session":
+      await self.__sendToServer(response["data"]["id"], response["data"]["message"])
 
   async def __dispatch(self, message):
     if 'message' in message.keys():
@@ -43,16 +58,16 @@ class Manager(object):
     if chat_id not in self.__activeSessions.keys():
       self.__createSession(chat_id)
 
-    self.__activeSessions[chat_id]["buffer"].push(message)
-
-  def __callback(self, msg):
-    pass
+    response = {
+      "from": "telegram",
+      "data": message
+    }
+    self.__activeSessions[chat_id]["buffer"].push(response)
 
   def __createSession(self, chat_id):
     uSession = session.UserSession(chat_id)
-    uSession.setCallback(self.__callback)
     buffer = uSession.getBuffer()
-    task = asyncio.create_task(uSession.listen())
+    task = asyncio.create_task(uSession.listen(self.getBuffer()))
 
     self.__activeSessions[chat_id] = {
       "session": uSession,
