@@ -1,6 +1,6 @@
 import foxbit
 
-class CurrencyLife(object):
+class Trade(object):
   def __init__(self, historyLimit, valleyPercent, profit):
     self.__state = 0 # 0 - to buy, 1 - to sell
     self.__table = foxbit.Table(historyLimit, valleyPercent) # Todo> a data structure for this table
