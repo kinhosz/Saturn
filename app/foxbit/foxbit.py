@@ -41,6 +41,21 @@ class Foxbit(object):
     elif endpoint == "GetTickerHistory":
       request["o"] = self.__payloadForGetTickerHistory()
 
+    elif endpoint == "GetUserInfo":
+      request["o"] = self.__payloadForGetUserInfo()
+
+    elif endpoint == "GetOpenOrders":
+      request["o"] = self.__payloadForGetOpenOrders(**kwargs)
+
+    elif endpoint == "GetOrderHistory":
+      request["o"] = self.__payloadForGetOrderHistory(**kwargs)
+
+    elif endpoint == "GetAccountTrades":
+      request["o"] = self.__payloadForGetAccountTrades(**kwargs)
+
+    elif endpoint == "SendOrder":
+      request["o"] = self.__payloadForSendOrder(**kwargs)
+
     return json.dumps(request)
 
   async def __sendRequest(self, request):
@@ -104,6 +119,59 @@ class Foxbit(object):
 
     return json.dumps(payload)
 
+  def __payloadForGetUserInfo(self):
+    payload = {}
+
+    return json.dumps(payload)
+
+  def __payloadForGetOpenOrders(self, accountId):
+    payload = {
+      "AccountId": accountId,
+      "OMSId": 1
+    }
+
+    return json.dumps(payload)
+
+  def __payloadForGetOrderHistory(self, accountId):
+    payload = {
+      "AccountId": accountId,
+      "OMSId": 1
+    }
+
+    return json.dumps(payload)
+  
+  def __payloadForGetAccountTrades(self, accountId):
+    payload = {
+      "AccountId": accountId,
+      "OMSId": 1,
+      "StartIndex": 0,
+      "Count": 1
+    }
+
+    return json.dumps(payload)
+
+  def __payloadForSendOrder(self, accountId, **kwargs):
+    payload = {
+      "AccountId": accountId,
+      "ClientOrderId": 99,
+      "Quantity": 1,
+      "DisplayQuantity": 0,
+      "UseDisplayQuantity": true,
+      "LimitPrice": 95,
+      "OrderIdOCO": 0,
+      "OrderType": 2,
+      "PegPriceType": 1,
+      "InstrumentId": 1,
+      "TrailingAmount": 1.0,
+      "LimitOffset": 2.0,
+      "Side": 0,
+      "StopPrice": 96,
+      "TimeInForce": 1,
+      "OMSId": 1
+    }
+
+    return json.dumps(payload)
+
   # endpoints
 
   async def authenticate(self, username, password):
@@ -150,3 +218,28 @@ class Foxbit(object):
     response["o"] = responsePayload
 
     return response
+
+  async def getUserInfo(self):
+    request = self.__buildRequest(endpoint = "GetUserInfo")
+    return await self.__sendRequest(request)
+
+  async def getOpenOrders(self, accountId):
+    request = self.__buildRequest(endpoint = "GetOpenOrders",
+                                  accountId = accountId)
+
+    return await self.__sendRequest(request)
+  
+  async def getOrderHistory(self, accountId):
+    request = self.__buildRequest(endpoint = "GetOrderHistory",
+                                  accountId = accountId)
+    
+    return await self.__sendRequest(request)
+
+  async def getAccountTrades(self, accountId):
+    request = self.__buildRequest(endpoint = "GetAccountTrades",
+                                  accountId = accountId)
+
+    return await self.__sendRequest(request)
+
+  async def sendOrder(self):
+    request = self.__buildRequest(endpoint = "SendOrder")
