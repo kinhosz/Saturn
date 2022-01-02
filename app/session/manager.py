@@ -2,15 +2,13 @@ from algorithms import Queue
 import telegram
 import session
 import asyncio
+import foxbit
 
 class Manager(object):
   def __init__(self):
     self.__serverBuffer = None
     self.__buffer = Queue()
     self.__activeSessions = {}
-
-  def setServerBuffer(self, sb):
-    self.__serverBuffer = sb
 
   async def listen(self):
     DELAY_FOR_WAIT_MESSAGES_IN_SECONDS = 0.1
@@ -27,6 +25,9 @@ class Manager(object):
 
   def getBuffer(self):
     return self.__buffer
+
+  def setServerBuffer(self, sb):
+    self.__serverBuffer = sb
 
   def __sendToServer(self, chat_id, message):
     self.__serverBuffer.push({

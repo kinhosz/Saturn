@@ -6,7 +6,7 @@ async def render():
   tServer = TServer()
   manager = Manager()
 
-  manager.setServerBuffer(tServer.getBuffer())  
+  manager.setServerBuffer(tServer.getBuffer())
 
   tasks = []
 
