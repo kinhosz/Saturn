@@ -3,6 +3,7 @@ import asyncio
 import session
 import foxbit
 import websockets
+import re
 
 class UserSession(object):
   def __init__(self, chat_id):
@@ -13,9 +14,17 @@ class UserSession(object):
     self.__fb = None
     # user login information
     self.__username = None
+    # trade information
+    self.__trade = None
+    self.__tradeTask = None
+    # temps values
+    self.__temp = []
 
   def getBuffer(self):
     return self.__buffer
+
+  def __clearTemp(self):
+    self.__temp = []
 
   async def listen(self, buffer):
     async with websockets.connect(foxbit.URI) as ws:
@@ -57,15 +66,31 @@ class UserSession(object):
       }
     })
 
+  def __assertLogged(self):
+    if self.__state != session.State.START:
+      return True
+
+    self.__sendManagerMessage(session.WARNING_NOT_LOGGED)
+
   def __isCriticalState(self):
     return self.__state in [session.State.WAITING_FOR_EMAIL, 
-                            session.State.WAITING_FOR_PASSWORD]
+                            session.State.WAITING_FOR_PASSWORD,
+                            session.State.WAITING_FOR_HISTORY_LIMIT,
+                            session.State.WAITING_FOR_VALLEY,
+                            session.State.WAITING_FOR_PROFIT]
 
   async def __handleCriticalInformation(self, msg):
     if self.__state == session.State.WAITING_FOR_EMAIL:
       self.__recvEmail(msg)
     elif self.__state == session.State.WAITING_FOR_PASSWORD:
       await self.__recvPassword(msg)
+    elif self.__state == session.State.WAITING_FOR_HISTORY_LIMIT:
+      self.__recvHistoryLimit(msg)
+    elif self.__state == session.State.WAITING_FOR_VALLEY:
+      self.__recvValley(msg)
+    elif self.__state == session.State.WAITING_FOR_PROFIT:
+      self.__recvProfit(msg)
+      
 
   # handle for askeds requests
   def __recvEmail(self, email):
@@ -83,12 +108,96 @@ class UserSession(object):
       self.__state = session.State.LOGGED
       self.__sendManagerMessage(session.LOGGED)
 
+  def __recvHistoryLimit(self, limit):
+    if not limit.isdigit():
+      self.__state = session.State.LOGGED
+      self.__sendManagerMessage(session.INVALID_HISTORY_LIMIT)
+    else:
+      self.__temp.append(int(limit))
+      self.__state = session.State.WAITING_FOR_VALLEY
+      self.__sendManagerMessage(session.ASK_VALLEY)
+
+  def __recvValley(self, valley):
+    if re.fullmatch('0.\d+', valley) == None:
+      self.__state = session.State.LOGGED
+      self.__sendManagerMessage(session.INVALID_VALLEY)
+    else:
+      f_valley = float(valley)
+      self.__temp.append(f_valley)
+      self.__state = session.State.WAITING_FOR_PROFIT
+      self.__sendManagerMessage(session.ASK_PROFIT)
+
+  def __recvProfit(self, profit):
+    if re.fullmatch('0.\d+', profit) == None:
+      self.__state = session.State.LOGGED
+      self.__sendManagerMessage(session.INVALID_PROFIT)
+    else:
+      f_profit = float(profit)
+      self.__createTrade(self.__temp[0], self.__temp[1], f_profit)
+      self.__clearTemp()
+      self.__state = session.State.TRADE_CREATED
+      self.__sendManagerMessage(session.TRADE_CREATED)
+
+  # handle for commands
   async def __handleSessionCommand(self, msg):
     if msg == "/start":
       self.__sendManagerMessage(session.START)
     elif msg == "/login":
       self.__login()
+    elif msg == "/trade_start":
+      self.__startTrade()
 
   def __login(self):
+    if self.__state != session.State.START:
+      self.__sendManagerMessage(session.WARNING_ALREADY_LOGGED)
+      return None
+
     self.__state = session.State.WAITING_FOR_EMAIL
     self.__sendManagerMessage(session.ASK_EMAIL)
+
+  def __startTrade(self):
+    if not self.__assertLogged():
+      return None
+
+    self.__state = session.State.WAITING_FOR_HISTORY_LIMIT
+    self.__sendManagerMessage(session.ASK_HISTORY_LIMIT)
+
+  def __createTrade(self, limit, valley, profit):
+    self.__trade = foxbit.Trade(limit, valley, profit)
+    self.__tradeTask = asyncio.create_task(self.__tradeLife())
+
+  async def __tradeLife(self):
+    DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS = 1800
+    BUYED = False
+
+    buyedFor = None
+
+    # waiting for buy
+    while not BUYED:
+      response = await self.__getCurrencyValue()
+      price = response["Ask"]
+      if self.__trade.addPrice(price):
+        buyedFor = price
+        self.__trade.lockPrice(price)
+        BUYED = True
+        self.__sendManagerMessage(session.currency_buyed(price))
+      else:
+        self.__sendManagerMessage(session.current_price(price))
+      await asyncio.sleep(DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS)
+
+    SOLD = False
+    soldFor = None
+    # waiting for sell
+    while not SOLD:
+      response = await self.__getCurrencyValue()
+      price = response["Bid"]
+      if self.__trade.checkProfit(price):
+        SOLD = True
+        self.__sendManagerMessage(session.currency_sold(buyedFor, soldFor))
+      else:
+        self.__sendManagerMessage(session.current_price(price))
+      await asyncio.sleep(DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS)
+  
+  async def __getCurrencyValue(self):
+    response = await self.__fb.getTickerHistory()
+    return response["o"]
