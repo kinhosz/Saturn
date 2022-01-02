@@ -8,9 +8,8 @@ class TServer(object):
     self.__tbot = telepot.Bot(os.getenv('telegram_token'))
     self.__buffer = Queue()
 
-  async def listen(self, buffer):
-    managerTask = asyncio.create_task(self.__listenBuffer())
-    DELAY_FOR_RECEIVE_MESSAGES_IN_SECONDS = 0.1
+  async def listenTelegram(self, buffer):
+    DELAY_FOR_RECEIVE_MESSAGES_IN_SECONDS = 0.5
 
     current_id = 0
     response = self.__tbot.getUpdates()
@@ -30,8 +29,8 @@ class TServer(object):
       
       await asyncio.sleep(DELAY_FOR_RECEIVE_MESSAGES_IN_SECONDS)
 
-  async def __listenBuffer(self):
-    DELAY_FOR_WAIT_MESSAGES_IN_SECONDS = 0.1
+  async def listenBuffer(self):
+    DELAY_FOR_WAIT_MESSAGES_IN_SECONDS = 0.5
 
     while True:
       buffer_sz = self.__buffer.size()

@@ -28,7 +28,7 @@ class Manager(object):
   def getBuffer(self):
     return self.__buffer
 
-  async def __sendToServer(self, chat_id, message):
+  def __sendToServer(self, chat_id, message):
     self.__serverBuffer.push({
       "from": "manager",
       "data": {
@@ -41,7 +41,7 @@ class Manager(object):
     if response["from"] == "telegram":
       await self.__dispatch(response["data"])
     elif response["from"] == "session":
-      await self.__sendToServer(response["data"]["id"], response["data"]["message"])
+      self.__sendToServer(response["data"]["id"], response["data"]["message"])
 
   async def __dispatch(self, message):
     if 'message' in message.keys():
