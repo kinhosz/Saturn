@@ -168,31 +168,31 @@ class UserSession(object):
 
   async def __tradeLife(self):
     DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS = 1800
-    BUYED = False
+    buyed = False
 
     buyedFor = None
 
     # waiting for buy
-    while not BUYED:
+    while not buyed:
       response = await self.__getCurrencyValue()
       price = response["Ask"]
       if self.__trade.addPrice(price):
         buyedFor = price
         self.__trade.lockPrice(price)
-        BUYED = True
+        buyed = True
         self.__sendManagerMessage(session.currency_buyed(price))
       else:
         self.__sendManagerMessage(session.current_price(price))
       await asyncio.sleep(DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS)
 
-    SOLD = False
+    sold = False
     soldFor = None
     # waiting for sell
-    while not SOLD:
+    while not sold:
       response = await self.__getCurrencyValue()
       price = response["Bid"]
       if self.__trade.checkProfit(price):
-        SOLD = True
+        sold = True
         self.__sendManagerMessage(session.currency_sold(buyedFor, soldFor))
       else:
         self.__sendManagerMessage(session.current_price(price))
