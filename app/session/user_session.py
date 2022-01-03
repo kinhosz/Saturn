@@ -118,7 +118,7 @@ class UserSession(object):
       self.__sendManagerMessage(session.ASK_VALLEY)
 
   def __recvValley(self, valley):
-    if re.fullmatch('0.\d+', valley) == None:
+    if re.fullmatch('0\.\d+', valley) == None:
       self.__state = session.State.LOGGED
       self.__sendManagerMessage(session.INVALID_VALLEY)
     else:
@@ -128,7 +128,7 @@ class UserSession(object):
       self.__sendManagerMessage(session.ASK_PROFIT)
 
   def __recvProfit(self, profit):
-    if re.fullmatch('0.\d+', profit) == None:
+    if re.fullmatch('0\.\d+', profit) == None:
       self.__state = session.State.LOGGED
       self.__sendManagerMessage(session.INVALID_PROFIT)
     else:
@@ -165,6 +165,12 @@ class UserSession(object):
   def __createTrade(self, limit, valley, profit):
     self.__trade = foxbit.Trade(limit, valley, profit)
     self.__tradeTask = asyncio.create_task(self.__tradeLife())
+    
+  async def test(self):
+    acc = await self.__fb.getAccountId()
+    coi = await self.__fb.getClientOrderId(acc)
+    print("account:", acc)
+    print("client order id:", coi)
 
   async def __tradeLife(self):
     DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS = 1800
