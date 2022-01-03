@@ -243,3 +243,15 @@ class Foxbit(object):
 
   async def sendOrder(self):
     request = self.__buildRequest(endpoint = "SendOrder")
+
+  # utils
+
+  async def getAccountId(self):
+    response = await self.getUserInfo()
+
+    return response["o"]["AccountId"]
+
+  async def getClientOrderId(self, accountId):
+    response = await self.getOrderHistory(accountId)
+
+    return response["o"][0]["ClientOrderId"]
