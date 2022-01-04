@@ -189,7 +189,7 @@ class UserSession(object):
     clientOrderId = await self.__fb.getClientOrderId(accountId)
     response = await self.__fb.buy(accountId, clientOrderId)
     if response["o"]["status"] == "Accepted":
-      self.__sendManagerMessage(session.currency_buyed(price))
+      self.__sendManagerMessage(session.currency_buyed(buyedFor))
     else:
       self.__sendManagerMessage("Erro ao comprar moeda")
 
