@@ -150,24 +150,27 @@ class Foxbit(object):
 
     return json.dumps(payload)
 
-  def __payloadForSendOrder(self, accountId, **kwargs):
+  def __payloadForSendOrder(self, accountId, clientOrderId, side):
+    # reference: https://alphapoint.github.io/slate/#sendorder
+    # reference: https://www.flowbtc.com.br/api.html
+    BASE_TEST_FOR_BUY = 0.00005
+
+    if side == 0:
+      quantity = BASE_TEST_FOR_BUY
+    else:
+      quantity = BASE_TEST_FOR_BUY - BASE_TEST_FOR_BUY * foxbit.TAX_FOR_MARKET_ORDER
+
     payload = {
-      "AccountId": accountId,
-      "ClientOrderId": 99,
-      "Quantity": 1,
-      "DisplayQuantity": 0,
-      "UseDisplayQuantity": true,
-      "LimitPrice": 95,
-      "OrderIdOCO": 0,
-      "OrderType": 2,
-      "PegPriceType": 1,
-      "InstrumentId": 1,
-      "TrailingAmount": 1.0,
-      "LimitOffset": 2.0,
-      "Side": 0,
-      "StopPrice": 96,
-      "TimeInForce": 1,
-      "OMSId": 1
+      "AccountId": accountId,                              # ok
+      "ClientOrderId": clientOrderId,                      # ok
+      "Quantity": quantity,                                 # ok
+      "DisplayQuantity": 0,                                # ok
+      "OrderIdOCO": 0,                                     # ok (poderia omitir)
+      "OrderType": 1,                                      # ok
+      "InstrumentId": 1,                                   # ok (btc)
+      "Side": side,                                        # ok
+      "TimeInForce": 1,                                    # ok
+      "OMSId": 1                                           # ok
     }
 
     return json.dumps(payload)
@@ -241,8 +244,19 @@ class Foxbit(object):
 
     return await self.__sendRequest(request)
 
-  async def sendOrder(self):
-    request = self.__buildRequest(endpoint = "SendOrder")
+  async def __sendOrder(self, accountId, clientOrderId, side):
+    request = self.__buildRequest(endpoint = "SendOrder",
+                                  accountId = accountId,
+                                  clientOrderId = clientOrderId,
+                                  side = side)
+
+    return await self.__sendRequest(request)
+
+  async def buy(self, accountId, clientOrderId):
+    return await self.__sendOrder(accountId, clientOrderId, side=0)
+
+  async def sell(self, accountId, clientOrderId):
+    return await self.__sendOrder(accountId, clientOrderId, side=1)
 
   # utils
 

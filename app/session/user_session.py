@@ -165,15 +165,9 @@ class UserSession(object):
   def __createTrade(self, limit, valley, profit):
     self.__trade = foxbit.Trade(limit, valley, profit)
     self.__tradeTask = asyncio.create_task(self.__tradeLife())
-    
-  async def test(self):
-    acc = await self.__fb.getAccountId()
-    coi = await self.__fb.getClientOrderId(acc)
-    print("account:", acc)
-    print("client order id:", coi)
 
   async def __tradeLife(self):
-    DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS = 1800
+    DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS = 600
     buyed = False
 
     buyedFor = None
@@ -191,6 +185,10 @@ class UserSession(object):
         self.__sendManagerMessage(session.current_price(price))
       await asyncio.sleep(DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS)
 
+    accountId = await self.__fb.getAccountId()
+    clientOrderId = await self.__fb.getClientOrderId(accountId)
+    self.__fb.buy(accountId, clientOrderId)
+
     sold = False
     soldFor = None
     # waiting for sell
@@ -203,6 +201,10 @@ class UserSession(object):
       else:
         self.__sendManagerMessage(session.current_price(price))
       await asyncio.sleep(DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS)
+
+    accountId = await self.__fb.getAccountId()
+    clientOrderId = await self.__fb.getClientOrderId(accountId)
+    self.__fb.sell(accountId, clientOrderId)
   
   async def __getCurrencyValue(self):
     response = await self.__fb.getTickerHistory()
