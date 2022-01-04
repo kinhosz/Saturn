@@ -180,14 +180,18 @@ class UserSession(object):
         buyedFor = price
         self.__trade.lockPrice(price)
         buyed = True
-        self.__sendManagerMessage(session.currency_buyed(price))
+        self.__sendManagerMessage(session.current_price(price))
       else:
         self.__sendManagerMessage(session.current_price(price))
       await asyncio.sleep(DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS)
 
     accountId = await self.__fb.getAccountId()
     clientOrderId = await self.__fb.getClientOrderId(accountId)
-    self.__fb.buy(accountId, clientOrderId)
+    response = await self.__fb.buy(accountId, clientOrderId)
+    if response["o"]["status"] == "Accepted":
+      self.__sendManagerMessage(session.currency_buyed(price))
+    else:
+      self.__sendManagerMessage("Erro ao comprar moeda")
 
     sold = False
     soldFor = None
@@ -197,14 +201,19 @@ class UserSession(object):
       price = response["Bid"]
       if self.__trade.checkProfit(price):
         sold = True
-        self.__sendManagerMessage(session.currency_sold(buyedFor, soldFor))
+        soldFor = price
+        self.__sendManagerMessage(session.current_price(price))
       else:
         self.__sendManagerMessage(session.current_price(price))
       await asyncio.sleep(DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS)
 
     accountId = await self.__fb.getAccountId()
     clientOrderId = await self.__fb.getClientOrderId(accountId)
-    self.__fb.sell(accountId, clientOrderId)
+    response = await self.__fb.sell(accountId, clientOrderId)
+    if response["o"]["status"] == "Accepted":
+      self.__sendManagerMessage(session.currency_sold(buyedFor, soldFor))
+    else:
+      self.__sendManagerMessage("Erro ao vender moeda")
   
   async def __getCurrencyValue(self):
     response = await self.__fb.getTickerHistory()

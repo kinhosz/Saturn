@@ -74,6 +74,7 @@ class Foxbit(object):
         "status": "Failed",
         "description": "An error occur during send and receive request from websocket"
       }
+      raise NameErrror("Problema ao enviar e/ou receber resposta do websocket")
 
     return response
 
