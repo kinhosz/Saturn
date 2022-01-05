@@ -5,8 +5,14 @@ from algorithms import Queue
 
 class TServer(object):
   def __init__(self):
+    print("iniciando tserver")
     self.__tbot = telepot.Bot(os.getenv('telegram_token'))
     self.__buffer = Queue()
+    
+    if self.__tbot != None:
+      print("ok")
+    else:
+      print("fail")
 
   async def listenTelegram(self, buffer):
     DELAY_FOR_RECEIVE_MESSAGES_IN_SECONDS = 0.5
