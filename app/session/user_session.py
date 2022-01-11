@@ -222,7 +222,7 @@ class UserSession(object):
       self.__sendManagerMessage(session.currency_buyed(buyedFor))
     else:
       self.__restart()
-      self.__sendManagerMessage(session.message.log_error(description="Erro ao comprar moeda",
+      self.__sendManagerMessage(session.log_error(description="Erro ao comprar moeda",
                                                           path="user_session.__tradeLife",
                                                           body=json.dumps(response)))
       return None
@@ -249,7 +249,7 @@ class UserSession(object):
       self.__sendManagerMessage(session.currency_sold(buyedFor, soldFor))
     else:
       self.__restart()
-      self.__sendManagerMessage(session.message.log_error(description="Erro ao vender moeda",
+      self.__sendManagerMessage(session.log_error(description="Erro ao vender moeda",
                                                           path="user_session.__tradeLife",
                                                           body=json.dumps(response)))
   
