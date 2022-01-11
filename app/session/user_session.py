@@ -26,6 +26,13 @@ class UserSession(object):
   def __clearTemp(self):
     self.__temp = []
 
+  def __restart(self):
+    self.__state = session.State.START
+    self.__buffer = Queue()
+    self.__trade = None
+    self.__tradeTask = None
+    self.__temp = []
+
   async def listen(self, buffer):
     async with websockets.connect(foxbit.URI) as ws:
       self.__fb = foxbit.Foxbit(ws)
@@ -91,6 +98,14 @@ class UserSession(object):
     elif self.__state == session.State.WAITING_FOR_PROFIT:
       self.__recvProfit(msg)
       
+  # log erros and set break state
+  def __isResponseOk(self, response):
+    if response["status"] == "Failed":
+      self.__restart()
+      self.__sendManagerMessage(session.log_error(**response))
+      return False
+    else:
+      return True
 
   # handle for askeds requests
   def __recvEmail(self, email):
@@ -100,6 +115,8 @@ class UserSession(object):
 
   async def __recvPassword(self, password):
     response = await self.__fb.authenticate(self.__username, password)
+    if not self.__isResponseOk(response):
+      return None
 
     if response["o"]["Authenticated"] == False:
       self.__state = session.State.START
@@ -185,13 +202,30 @@ class UserSession(object):
         self.__sendManagerMessage(session.current_price(price))
       await asyncio.sleep(DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS)
 
-    accountId = await self.__fb.getAccountId()
-    clientOrderId = await self.__fb.getClientOrderId(accountId)
+    response = await self.__fb.getAccountId()
+    if not self.__isResponseOk(response):
+      return None
+    
+    accountId = response["data"]
+
+    response = await self.__fb.getClientOrderId(accountId)
+    if not self.__isResponseOk(response):
+      return None
+
+    clientOrderId = response["data"]
+
     response = await self.__fb.buy(accountId, clientOrderId)
+    if not self.__isResponseOk(response):
+      return None
+
     if response["o"]["status"] == "Accepted":
       self.__sendManagerMessage(session.currency_buyed(buyedFor))
     else:
-      self.__sendManagerMessage("Erro ao comprar moeda")
+      self.__restart()
+      self.__sendManagerMessage(session.message.log_error(description="Erro ao comprar moeda",
+                                                          path="user_session.__tradeLife",
+                                                          body=json.dumps(response)))
+      return None
 
     sold = False
     soldFor = None
@@ -207,14 +241,21 @@ class UserSession(object):
         self.__sendManagerMessage(session.current_price(price))
       await asyncio.sleep(DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS)
 
-    accountId = await self.__fb.getAccountId()
-    clientOrderId = await self.__fb.getClientOrderId(accountId)
     response = await self.__fb.sell(accountId, clientOrderId)
+    if not self.__isResponseOk(response):
+      return None
+
     if response["o"]["status"] == "Accepted":
       self.__sendManagerMessage(session.currency_sold(buyedFor, soldFor))
     else:
-      self.__sendManagerMessage("Erro ao vender moeda")
+      self.__restart()
+      self.__sendManagerMessage(session.message.log_error(description="Erro ao vender moeda",
+                                                          path="user_session.__tradeLife",
+                                                          body=json.dumps(response)))
   
   async def __getCurrencyValue(self):
     response = await self.__fb.getTickerHistory()
+    if not self.__isResponseOk(response):
+      return None
+
     return response["o"]
