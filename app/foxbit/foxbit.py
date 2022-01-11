@@ -8,6 +8,16 @@ class Foxbit(object):
     self.__ws = websocket
     self.__lastRequestTime = None
 
+  def __createErrorResponse(self, description, path, body):
+    response = {
+      "status": "Failed",
+      "description": description,
+      "path": path,
+      "body": body
+    }
+
+    return response
+
   def __basicRequest(self, endpoint=""):
     response = {
       "m": 0, # MessageType ( 0_Request / 1_Reply / 2_Subscribe / 3_Event / 4_Unsubscribe / Error )
@@ -70,11 +80,9 @@ class Foxbit(object):
 
       response["status"] = "Success" 
     except:
-      response = {
-        "status": "Failed",
-        "description": "An error occur during send and receive request from websocket"
-      }
-      raise NameErrror("Problema ao enviar e/ou receber resposta do websocket")
+      response = self.__createErrorResponse(description="An error occur during send and receive request from websocket",
+                                            path="foxbit.__sendRequest",
+                                            body=request)
 
     return response
 
@@ -199,24 +207,28 @@ class Foxbit(object):
     request = self.__buildRequest(endpoint = "GetTickerHistory")
     response = await self.__sendRequest(request)
 
-    if response["status"] == "Fail":
+    if response["status"] == "Failed":
       return response
 
     try:
-      listPayload = response["o"]
+      listPayload = response["o"][-1]
     except:
-      print(response)
+      errorResponse = self.__createErrorResponse(description="The response didnt have the list payload",
+                                                 path="foxbit.getTickerHistory",
+                                                 body=json.dumps(response))
+      return errorResponse
+
     # an easy way to understand the response
     responsePayload = {
-      "UTC": listPayload[-1][0],
-      "High": listPayload[-1][1],
-      "Low": listPayload[-1][2],
-      "Open": listPayload[-1][3],
-      "Close": listPayload[-1][4],
-      "Volume": listPayload[-1][5],
-      "Bid": listPayload[-1][6],
-      "Ask": listPayload[-1][7],
-      "InstrumentId": listPayload[-1][8]
+      "UTC": listPayload[0],
+      "High": listPayload[1],
+      "Low": listPayload[2],
+      "Open": listPayload[3],
+      "Close": listPayload[4],
+      "Volume": listPayload[5],
+      "Bid": listPayload[6],
+      "Ask": listPayload[7],
+      "InstrumentId": listPayload[8]
     }
 
     response["o"] = responsePayload
@@ -260,13 +272,31 @@ class Foxbit(object):
     return await self.__sendOrder(accountId, clientOrderId, side=1)
 
   # utils
+  def __createResponseForUtils(self, data):
+    response = {
+      "status": "Sucess",
+      "data": data
+    }
+
+    return response
 
   async def getAccountId(self):
     response = await self.getUserInfo()
 
-    return response["o"]["AccountId"]
+    if response["status"] == "Failed":
+      return response
+
+    return self.__createResponseForUtils(response["o"]["AccountId"])
 
   async def getClientOrderId(self, accountId):
     response = await self.getOrderHistory(accountId)
 
-    return response["o"][0]["ClientOrderId"]
+    if response["status"] == "Failed":
+      return response
+
+    if len(response["o"]) == 0:
+      return self.__createErrorResponse(description="The client didnt have any Order",
+                                        path="foxbit.getClientOrderId",
+                                        body= json.dumps(response))
+
+    return self.__createResponseForUtils(response["o"][0]["ClientOrderId"])
