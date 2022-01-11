@@ -49,6 +49,14 @@ def currency_sold(buyed, sold):
   return msg
 
 def current_price(price):
-
   msg = f"O atual valor da moeda é de R$ {price}"
+  return msg
+
+def log_error(description, path, body):
+  msg = f"Session Error.\nDescrição: ```{description}```\n" \
+        + f"path: ```{path}```\n" \
+        + f"body: ```{body}```\n\n" \
+        + f"Devido a este erro sua sessão foi resetada, por favor" \
+        + f"registre este erro no nosso (repositório)[https://github.com/kinhosz/Saturn/issues/new]"
+
   return msg
