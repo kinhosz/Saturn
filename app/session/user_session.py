@@ -4,6 +4,7 @@ import session
 import foxbit
 import websockets
 import re
+import json
 
 class UserSession(object):
   def __init__(self, chat_id):
@@ -97,11 +98,23 @@ class UserSession(object):
       self.__recvValley(msg)
     elif self.__state == session.State.WAITING_FOR_PROFIT:
       self.__recvProfit(msg)
-      
+
+  def __deletePassword(self, response):
+    body = response["body"]
+    body = json.loads(body)
+    ro = body["o"]
+    ro = json.loads(ro)
+    ro["Password"] = "secret"
+    ro = json.dumps(ro)
+    body["o"] = ro
+    body = json.dumps(body)
+    response["body"] = body
+
   # log erros and set break state
-  def __isResponseOk(self, response):
+  def __isResponseOk(self, response, password=False):
     if response["status"] == "Failed":
       self.__restart()
+      self.__deletePassword(response)
       self.__sendManagerMessage(session.log_error(**response))
       return False
     else:
@@ -115,7 +128,7 @@ class UserSession(object):
 
   async def __recvPassword(self, password):
     response = await self.__fb.authenticate(self.__username, password)
-    if not self.__isResponseOk(response):
+    if not self.__isResponseOk(response, password=True):
       return None
 
     if response["o"]["Authenticated"] == False:
