@@ -1,7 +1,7 @@
 name: Continuous Integration
 on: [push]
 jobs:
-  release:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
