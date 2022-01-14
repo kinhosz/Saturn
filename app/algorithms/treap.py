@@ -138,4 +138,17 @@ class Treap(object):
     self.__erase(self.__root, key)
 
   def prefix(self, key):
-    return self.__prefix(self.__root, key)  
+    return self.__prefix(self.__root, key)
+
+  def getAllKeys(self, ls=[], t=None, firstCall=True):
+    if firstCall:
+      t = self.__root
+
+    if t.node == None:
+      return ls
+
+    self.getAllKeys(ls, t.node.pl, False)
+    ls.append(t.node.key)
+    self.getAllKeys(ls, t.node.pr, False)
+
+    return ls
