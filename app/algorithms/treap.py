@@ -45,17 +45,19 @@ class Treap(object):
     self.__root = pNode(None)
 
   def __split(self, p, key, pl, pr):
+    c = pNode(p.node)
+
     if p.node == None:
       pl.node = None
       pr.node = None
     elif p.node.key <= key:
-      self.__split(p.node.pr, key, p.node.pr, pr)
       pl.node = p.node
+      self.__split(p.node.pr, key, p.node.pr, pr)
     else:
-      self.__split(p.node.pl, key, pl, p.node.pl)
       pr.node = p.node
+      self.__split(p.node.pl, key, pl, p.node.pl)
 
-    self.__update(p)
+    self.__update(c)
 
   def __insert(self, p, item):
     if p.node == None:
@@ -138,4 +140,18 @@ class Treap(object):
     self.__erase(self.__root, key)
 
   def prefix(self, key):
-    return self.__prefix(self.__root, key)  
+    return self.__prefix(self.__root, key)
+
+  def getAllKeys(self, t=None, firstCall=True):
+    if firstCall:
+      t = self.__root
+
+    if t.node == None:
+      return []
+
+    ls = []
+    ls = ls + self.getAllKeys(t.node.pl, False)
+    ls.append(t.node.key)
+    ls = ls + self.getAllKeys(t.node.pr, False)
+
+    return ls
