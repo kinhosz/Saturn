@@ -45,6 +45,8 @@ class Treap(object):
     self.__root = pNode(None)
 
   def __split(self, p, key, pl, pr):
+    c = pNode(p.node)
+
     if p.node == None:
       pl.node = None
       pr.node = None
@@ -55,7 +57,7 @@ class Treap(object):
       pr.node = p.node
       self.__split(p.node.pl, key, pl, p.node.pl)
 
-    self.__update(p)
+    self.__update(c)
 
   def __insert(self, p, item):
     if p.node == None:
