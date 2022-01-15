@@ -114,7 +114,9 @@ class UserSession(object):
   def __isResponseOk(self, response, password=False):
     if response["status"] == "Failed":
       self.__restart()
-      self.__deletePassword(response)
+      if password:
+        self.__deletePassword(response)
+
       self.__sendManagerMessage(session.log_error(**response))
       return False
     else:
