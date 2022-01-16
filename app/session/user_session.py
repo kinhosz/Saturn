@@ -50,6 +50,7 @@ class UserSession(object):
           await self.__handleMsg(message)
         
         await asyncio.sleep(DELAY_FOR_WAIT_MESSAGES_IN_SECONDS)
+    print("websockt is down")
 
   async def __handleMsg(self, message):
     if message["from"] == "telegram":
