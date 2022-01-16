@@ -208,34 +208,43 @@ class UserSession(object):
     while not buyed:
       response = await self.__getCurrencyValue()
       price = response["Ask"]
+      print("adicionando novo valor:", price)
       if self.__trade.addPrice(price):
+        print("linha 212")
         buyedFor = price
+        print("lockando preco")
         self.__trade.lockPrice(price)
         buyed = True
+        print("enviando mensagem")
         self.__sendManagerMessage(session.current_price(price))
       else:
         self.__sendManagerMessage(session.current_price(price))
       await asyncio.sleep(DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS)
 
+    print("indo para novo getaccount")
     response = await self.__fb.getAccountId()
     if not self.__isResponseOk(response):
       return None
     
     accountId = response["data"]
 
+    print("indo para getclientorderid")
     response = await self.__fb.getClientOrderId(accountId)
     if not self.__isResponseOk(response):
       return None
 
     clientOrderId = response["data"]
 
+    print("comprando")
     response = await self.__fb.buy(accountId, clientOrderId)
     if not self.__isResponseOk(response):
       return None
 
     if response["o"]["status"] == "Accepted":
+      print("aceito")
       self.__sendManagerMessage(session.currency_buyed(buyedFor))
     else:
+      print("ops.. restart")
       self.__restart()
       self.__sendManagerMessage(session.log_error(description="Erro ao comprar moeda",
                                                           path="user_session.__tradeLife",
@@ -248,6 +257,7 @@ class UserSession(object):
     while not sold:
       response = await self.__getCurrencyValue()
       price = response["Bid"]
+      print("preco para a venda:", price)
       if self.__trade.checkProfit(price):
         sold = True
         soldFor = price
