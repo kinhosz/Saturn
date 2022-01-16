@@ -36,7 +36,7 @@ jobs:
         python -m poetry run flake8 . --exclude .venv --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Run tests with unittest
         working-directory: ./app
-        run: python -m poetry python -m unittest discover tests
+        run: python -m unittest discover tests
     
   Release:
     needs: Quality
