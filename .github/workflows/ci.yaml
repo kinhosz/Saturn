@@ -41,4 +41,4 @@ jobs:
           pip install python-semantic-release
           git config user.name github-actions
           git config user.email github-actions@github.com
-          python setup.py publish
+          semantic-release publish
