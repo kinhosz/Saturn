@@ -24,6 +24,8 @@ jobs:
       - name: Run tests with unittest
         working-directory: ./app
         run: python -m unittest discover tests
+      - name: try publish
+        run: semantic-release publish -D branch=main
     
   release:
     runs-on: ubuntu-latest
@@ -34,9 +36,8 @@ jobs:
       with:
         ref : main
     - name: Python Semantic Release
-      uses: relekang/python-semantic-release@main
+      uses: relekang/python-semantic-release@master
       env:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         repository_username: __token__
-        run: semantic-release publish -D branch=main
       
