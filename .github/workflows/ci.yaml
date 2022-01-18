@@ -38,3 +38,4 @@ jobs:
       env:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         repository_username: __token__
+        branch: main

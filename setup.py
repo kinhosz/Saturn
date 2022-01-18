@@ -6,6 +6,5 @@ setup(
    name="Saturn",
    version=__version__,
    url="https://github.com/kinhosz/Saturn",
-   branch="main",
    # And so on...
 )
