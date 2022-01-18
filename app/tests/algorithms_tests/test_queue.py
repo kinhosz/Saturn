@@ -20,7 +20,6 @@ class TestQueue(unittest.TestCase):
     self.queue.pop()
     with self.assertRaises(Exception):
       self.queue.pop()
-    
     self.assertEqual(self.queue.front(), None, "Should be None")
 
   def tearDown(self):
