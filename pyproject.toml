@@ -1,5 +1,5 @@
 [tool.poetry]
-name="Saturn"
+name="app"
 version="0.1.2"
 description="A app for buying and selling cryptocurrencies"
 authors=["Kinhosz"]
