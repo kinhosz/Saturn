@@ -34,7 +34,7 @@ jobs:
       with:
         ref : main
     - name: Python Semantic Release
-      uses: relekang/python-semantic-release@master
+      uses: kinhosz/Saturn@main
       env:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         repository_username: __token__
