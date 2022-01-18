@@ -50,6 +50,7 @@ jobs:
       # it's running Python 3.7, and Tryceratops requires >=3.8
       - name: Python Semantic Release
         run: |
+          pip install python-semantic-release
           git config --global user.name "github-actions"
           git config --global user.email "action@github.com"
           semantic-release publish -D commit_author="github-actions <action@github.com>"
