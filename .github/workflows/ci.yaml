@@ -9,7 +9,7 @@ on:
     branches: [ main ]
 
 jobs:
-  Quality:
+  ahahaha:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -26,7 +26,7 @@ jobs:
         run: python -m unittest discover tests
     
   release:
-    needs: Quality
+    needs: ahahaha
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, 'chore(release):')
     runs-on: ubuntu-latest
     concurrency: release
