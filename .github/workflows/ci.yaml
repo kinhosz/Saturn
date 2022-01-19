@@ -33,7 +33,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          persist-credentials: false
           fetch-depth: 0
 
       - name: Set up Python 3.8
@@ -54,10 +53,8 @@ jobs:
           pip install python-semantic-release
           git config --global user.name "github-actions"
           git config --global user.email "action@github.com"
-          semantic-release changelog --post
-          semantic-release version -D commit_author="github-actions <action@github.com>"
       
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
+      - name: Publish
+        run: semantic-release publish -D commit_author="github-actions <action@github.com>"
+        env:
           github_token: ${{ secrets.ADDTAG_PAT }}
