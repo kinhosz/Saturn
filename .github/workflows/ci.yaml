@@ -49,12 +49,12 @@ jobs:
 
       # Can't use: relekang/python-semantic-release@master because
       # it's running Python 3.7, and Tryceratops requires >=3.8
-      '''- name: Python Semantic Release
-        run: |
-          pip install python-semantic-release
-          git config --global user.name "github-actions"
-          git config --global user.email "action@github.com"
-          semantic-release publish -D commit_author="github-actions <action@github.com>"
-        env:
+      #- name: Python Semantic Release
+        #run: |
+          #pip install python-semantic-release
+          #git config --global user.name "github-actions"
+          #git config --global user.email "action@github.com"
+          #semantic-release publish -D commit_author="github-actions <action@github.com>"
+        #env:
           #GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
-          GH_TOKEN: ${{ secrets.ADDTAG_PAT }}'''
+          #GH_TOKEN: ${{ secrets.ADDTAG_PAT }}
