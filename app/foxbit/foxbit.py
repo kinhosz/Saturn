@@ -69,11 +69,20 @@ class Foxbit(object):
     return json.dumps(request)
 
   async def __sendRequest(self, request):
-    await self.__wait() # wait for avoiding make excessive requests
+    attempts = 10
+    sended = True
 
-    try:
-      await self.__ws.send(request)
-    except:
+    for i in range(attempts):
+      await self.__wait() # wait for avoiding make excessive requests
+
+      try:
+        await self.__ws.send(request)
+        break
+      except:
+        sended = False
+        await asyncio.sleep(60)
+
+    if not sended:
       print("erro ao enviar request")
       response = self.__createErrorResponse(description="An error occur during send request to websocket",
                                             path="foxbit.__sendRequest",
