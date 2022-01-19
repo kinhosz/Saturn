@@ -35,6 +35,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+          path_token: ${{ secrets.ADDTAG_PAT }}
 
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
@@ -57,3 +58,4 @@ jobs:
           semantic-release publish -D commit_author="github-actions <action@github.com>"
         env:
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          tag_token: ${{ secrets.ADDTAG_PAT }}
