@@ -58,3 +58,9 @@ jobs:
         env:
           #GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
           GH_TOKEN: ${{ secrets.ADDTAG_PAT }}
+      
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.ADDTAG_PAT }}
+          #github_token: ${{ secrets.GITHUB_TOKEN }}
