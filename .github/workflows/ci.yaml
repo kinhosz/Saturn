@@ -46,15 +46,17 @@ jobs:
           python -m pip install poetry --upgrade pip
           poetry config virtualenvs.create false
           poetry install
-
-      # Can't use: relekang/python-semantic-release@master because
-      # it's running Python 3.7, and Tryceratops requires >=3.8
-      - name: Python Semantic Release
+      
+      - name: permit push to main
         uses: colmose/push-bot@v1.0.0
         with:
           token: ${{secrets.GITHUB_TOKEN}}
           branch_name: 'main'
           bot_name: 'github-actions'
+
+      # Can't use: relekang/python-semantic-release@master because
+      # it's running Python 3.7, and Tryceratops requires >=3.8
+      - name: Python Semantic Release
         run: |
           pip install python-semantic-release
           git config --global user.name "github-actions"
