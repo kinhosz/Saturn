@@ -35,8 +35,6 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-          github_token: ${{ secrets.ADDTAG_PAT }}
 
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
@@ -51,7 +49,7 @@ jobs:
 
       # Can't use: relekang/python-semantic-release@master because
       # it's running Python 3.7, and Tryceratops requires >=3.8
-      - name: Python Semantic Release
+      '''- name: Python Semantic Release
         run: |
           pip install python-semantic-release
           git config --global user.name "github-actions"
@@ -59,4 +57,4 @@ jobs:
           semantic-release publish -D commit_author="github-actions <action@github.com>"
         env:
           #GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
-          github_token: ${{ secrets.ADDTAG_PAT }}
+          GH_TOKEN: ${{ secrets.ADDTAG_PAT }}'''
