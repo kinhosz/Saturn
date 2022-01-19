@@ -48,6 +48,7 @@ jobs:
 
       # Can't use: relekang/python-semantic-release@master because
       # it's running Python 3.7, and Tryceratops requires >=3.8
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, 'chore(release):')
       - name: Python Semantic Release
         run: |
           pip install python-semantic-release
