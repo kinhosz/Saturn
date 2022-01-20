@@ -55,4 +55,4 @@ jobs:
       - name: Publish
         run: semantic-release publish -D commit_author="github-actions <action@github.com>"
         env:
-          github_token: ${{ secrets.ADDTAG_PAT }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
