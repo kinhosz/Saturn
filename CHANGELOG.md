@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.5 (2022-01-20)
+### Performance
+* **websocket.send:** Improve exceptions ([`7762ed8`](https://github.com/kinhosz/Saturn/commit/7762ed8d6ed7cbdf754a158c05fcff50e9fe8466))
+
 ## v0.1.3 (2022-01-18)
 ### Fix
 * Version ([`a6edd34`](https://github.com/kinhosz/Saturn/commit/a6edd34d241e0e228af2e054a6813f012645ef33))
