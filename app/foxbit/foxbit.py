@@ -1,6 +1,7 @@
 import foxbit
 import json
 import asyncio
+import websockets
 from datetime import datetime, timedelta
 
 class Foxbit(object):
@@ -69,22 +70,45 @@ class Foxbit(object):
     return json.dumps(request)
 
   async def __sendRequest(self, request):
-    attempts = 10
-    sended = True
+    await self.__wait() # wait for avoiding make excessive requests
 
-    for i in range(attempts):
-      await self.__wait() # wait for avoiding make excessive requests
+    errorMsg = "except: "
+    error = False
 
-      try:
-        await self.__ws.send(request)
-        break
-      except:
-        sended = False
-        await asyncio.sleep(60)
+    try:
+      await self.__ws.send(request)
+    except TypeError:
+      errorMsg = errorMsg + "TypeError"
+      error = True
 
-    if not sended:
+    except websockets.exceptions.ConnectionClosedOK:
+      errorMsg = errorMsg + "ConnectionClosedOK"
+      error = True
+
+    except websockets.exceptions.ConnectionClosedError:
+      errorMsg = errorMsg + "ConnectionClosedError"
+      error = True
+      
+    except websockets.exceptions.InvalidMessage:
+      errorMsg = errorMsg + "InvalidMessage"
+      error = True
+    
+    except websockets.exceptions.PayloadTooBig:
+      errorMsg = errorMsg + "PayloadTooBig"
+      error = True
+    
+    except RuntimeError:
+      errorMsg = errorMsg + "RuntimeError"
+      error = True
+
+    except:
+      errorMsg = errorMsg + "undefined"
+      error = True
+    
+    if error:
       print("erro ao enviar request")
-      response = self.__createErrorResponse(description="An error occur during send request to websocket",
+      description = "An error occur during send request to websocket. " + errorMsg
+      response = self.__createErrorResponse(description=description,
                                             path="foxbit.__sendRequest",
                                             body=request)
       return response
