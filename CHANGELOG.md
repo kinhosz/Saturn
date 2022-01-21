@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.6 (2022-01-21)
+### Fix
+* **user_session, foxbit:** Fix a connectionClosedError during websocket.send ([`95b109e`](https://github.com/kinhosz/Saturn/commit/95b109e5b27aced8c8398ec9787643abf89b2c28))
+
 ## v0.1.5 (2022-01-20)
 ### Performance
 * **websocket.send:** Improve exceptions ([`7762ed8`](https://github.com/kinhosz/Saturn/commit/7762ed8d6ed7cbdf754a158c05fcff50e9fe8466))
