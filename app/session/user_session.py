@@ -35,22 +35,20 @@ class UserSession(object):
     self.__temp = []
 
   async def listen(self, buffer):
-    async with websockets.connect(foxbit.URI) as ws:
-      self.__fb = foxbit.Foxbit(ws)
+    self.__fb = foxbit.Foxbit()
 
-      self.__callbackBuffer = buffer
-      DELAY_FOR_WAIT_MESSAGES_IN_SECONDS = 0.1
+    self.__callbackBuffer = buffer
+    DELAY_FOR_WAIT_MESSAGES_IN_SECONDS = 0.1
 
-      while True:
-        buffer_sz = self.__buffer.size()
+    while True:
+      buffer_sz = self.__buffer.size()
 
-        for i in range(buffer_sz):
-          message = self.__buffer.front()
-          self.__buffer.pop()
-          await self.__handleMsg(message)
-        
-        await asyncio.sleep(DELAY_FOR_WAIT_MESSAGES_IN_SECONDS)
-    print("websockt is down")
+      for i in range(buffer_sz):
+        message = self.__buffer.front()
+        self.__buffer.pop()
+        await self.__handleMsg(message)
+      
+      await asyncio.sleep(DELAY_FOR_WAIT_MESSAGES_IN_SECONDS)
 
   async def __handleMsg(self, message):
     if message["from"] == "telegram":
@@ -209,7 +207,6 @@ class UserSession(object):
     while not buyed:
       response = await self.__getCurrencyValue()
       price = response["Ask"]
-      print("adicionando novo valor:", price)
       if self.__trade.addPrice(price):
         print("linha 212")
         buyedFor = price
@@ -258,7 +255,6 @@ class UserSession(object):
     while not sold:
       response = await self.__getCurrencyValue()
       price = response["Bid"]
-      print("preco para a venda:", price)
       if self.__trade.checkProfit(price):
         sold = True
         soldFor = price
