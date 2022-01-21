@@ -5,9 +5,11 @@ import websockets
 from datetime import datetime, timedelta
 
 class Foxbit(object):
-  def __init__(self, websocket):
-    self.__ws = websocket
+  def __init__(self):
     self.__lastRequestTime = None
+    # TODO: improve store credentials
+    self.__username = None
+    self.__password = None
 
   def __createErrorResponse(self, description, path, body):
     response = {
@@ -69,14 +71,18 @@ class Foxbit(object):
 
     return json.dumps(request)
 
-  async def __sendRequest(self, request):
-    await self.__wait() # wait for avoiding make excessive requests
-
+  async def __websocketSend(self, request, websocket):
     errorMsg = "except: "
     error = False
 
+    response = {
+      "status": "Success"
+    }
+
+    await self.__wait()
+
     try:
-      await self.__ws.send(request)
+      await websocket.send(request)
     except TypeError:
       errorMsg = errorMsg + "TypeError"
       error = True
@@ -111,10 +117,13 @@ class Foxbit(object):
       response = self.__createErrorResponse(description=description,
                                             path="foxbit.__sendRequest",
                                             body=request)
-      return response
+    return response
+
+  async def __websocketRecv(self, websocket):
+    response = {}
 
     try:
-      str_response = await self.__ws.recv()
+      str_response = await websocket.recv()
     except:
       print("erro ao receber response")
       response = self.__createErrorResponse(description="An error occur during receive response from websocket",
@@ -131,8 +140,31 @@ class Foxbit(object):
       response = self.__createErrorResponse(description="An error occur during manipulate response from websocket",
                                             path="foxbit.__sendRequest",
                                             body=str_response)
-      return response
+    return response
 
+  async def __sendRequest(self, request, authentication=False):
+    response = {}
+
+    async with websockets.connect(foxbit.URI) as websocket:
+      if authentication:
+        auth_request = self.__buildRequest(endpoint = "WebAuthenticateUser",
+                                           username = self.__username,
+                                           password = self.__password)
+        response = await self.__websocketSend(auth_request, websocket)
+        if response["status"] == "Failed":
+          return response
+        
+        response = await self.__websocketRecv(websocket)
+        if response["status"] == "Failed":
+          return response
+
+      response = await self.__websocketSend(request, websocket)
+      if response["status"] == "Failed":
+        return response
+      
+      response = await self.__websocketRecv(websocket)
+      if response["status"] == "Failed":
+        return response
 
     return response
 
@@ -237,6 +269,8 @@ class Foxbit(object):
   # endpoints
 
   async def authenticate(self, username, password):
+    self.__username = username
+    self.__password = password
     request = self.__buildRequest(endpoint = "WebAuthenticateUser",
                                   username = username,
                                   password = password)
@@ -287,25 +321,25 @@ class Foxbit(object):
 
   async def getUserInfo(self):
     request = self.__buildRequest(endpoint = "GetUserInfo")
-    return await self.__sendRequest(request)
+    return await self.__sendRequest(request, authentication=True)
 
   async def getOpenOrders(self, accountId):
     request = self.__buildRequest(endpoint = "GetOpenOrders",
                                   accountId = accountId)
 
-    return await self.__sendRequest(request)
+    return await self.__sendRequest(request, authentication=True)
   
   async def getOrderHistory(self, accountId):
     request = self.__buildRequest(endpoint = "GetOrderHistory",
                                   accountId = accountId)
     
-    return await self.__sendRequest(request)
+    return await self.__sendRequest(request, authentication=True)
 
   async def getAccountTrades(self, accountId):
     request = self.__buildRequest(endpoint = "GetAccountTrades",
                                   accountId = accountId)
 
-    return await self.__sendRequest(request)
+    return await self.__sendRequest(request, authentication=True)
 
   async def __sendOrder(self, accountId, clientOrderId, side):
     request = self.__buildRequest(endpoint = "SendOrder",
@@ -313,7 +347,7 @@ class Foxbit(object):
                                   clientOrderId = clientOrderId,
                                   side = side)
 
-    return await self.__sendRequest(request)
+    return await self.__sendRequest(request, authentication=True)
 
   async def buy(self, accountId, clientOrderId):
     return await self.__sendOrder(accountId, clientOrderId, side=0)
