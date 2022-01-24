@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.8 (2022-01-24)
+### Fix
+* **receive:** Remove unless connectionClosed ([`7fed6b8`](https://github.com/kinhosz/Saturn/commit/7fed6b8a7de6cb161f415b53ae032d099a3cc4db))
+
 ## v0.1.7 (2022-01-24)
 ### Fix
 * **recv, deletePassword:** Fix the json format ([`71fbc8e`](https://github.com/kinhosz/Saturn/commit/71fbc8e4acf8d302d36f2d44bff0644b1e74e21b))
