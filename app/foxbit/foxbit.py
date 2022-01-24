@@ -183,8 +183,7 @@ class Foxbit(object):
       response = await self.__websocketSend(request, websocket)
       if response["status"] == "Failed":
         return response
-      
-      await websocket.close()
+
       response = await self.__websocketRecv(websocket)
       if response["status"] == "Failed":
         return response
