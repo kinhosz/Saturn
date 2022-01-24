@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.7 (2022-01-24)
+### Fix
+* **recv, deletePassword:** Fix the json format ([`71fbc8e`](https://github.com/kinhosz/Saturn/commit/71fbc8e4acf8d302d36f2d44bff0644b1e74e21b))
+
 ## v0.1.6 (2022-01-21)
 ### Fix
 * **user_session, foxbit:** Fix a connectionClosedError during websocket.send ([`95b109e`](https://github.com/kinhosz/Saturn/commit/95b109e5b27aced8c8398ec9787643abf89b2c28))
