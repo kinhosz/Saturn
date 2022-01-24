@@ -121,15 +121,37 @@ class Foxbit(object):
 
   async def __websocketRecv(self, websocket):
     response = {}
+    default_response = ""
 
     try:
       str_response = await websocket.recv()
-    except:
-      print("erro ao receber response")
-      response = self.__createErrorResponse(description="An error occur during receive response from websocket",
+    except  websockets.exceptions.ConnectionClosedOK:
+      print("erro ao receber response. ok")
+      response = self.__createErrorResponse(description="An error occur during receive response from websocket [closed ok]",
                                             path="foxbit.__sendRequest",
-                                            body=request)
+                                            body=default_response)
       return response
+    
+    except websockets.exceptions.ConnectionClosedError:
+      print("erro ao receber response. error")
+      response = self.__createErrorResponse(description="An error occur during receive response from websocket [closed error]",
+                                            path="foxbit.__sendRequest",
+                                            body=default_response)
+      return response
+    
+    except websockets.exceptions.RuntimeError:
+      print("erro ao receber response. rte")
+      response = self.__createErrorResponse(description="An error occur during receive response from websocket [rte]",
+                                            path="foxbit.__sendRequest",
+                                            body=default_response)
+      return response
+    
+    except:
+      print("erro ao receber response. udf")
+      response = self.__createErrorResponse(description="An error occur during receive response from websocket [udf]",
+                                            path="foxbit.__sendRequest",
+                                            body=default_response)
+      return response 
 
     try:
       response = json.loads(str_response)
@@ -162,6 +184,7 @@ class Foxbit(object):
       if response["status"] == "Failed":
         return response
       
+      await websocket.close()
       response = await self.__websocketRecv(websocket)
       if response["status"] == "Failed":
         return response
