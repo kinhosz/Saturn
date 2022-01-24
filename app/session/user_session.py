@@ -99,15 +99,18 @@ class UserSession(object):
       self.__recvProfit(msg)
 
   def __deletePassword(self, response):
-    body = response["body"]
-    body = json.loads(body)
-    ro = body["o"]
-    ro = json.loads(ro)
-    ro["Password"] = "secret"
-    ro = json.dumps(ro)
-    body["o"] = ro
-    body = json.dumps(body)
-    response["body"] = body
+    try:
+      body = response["body"]
+      body = json.loads(body)
+      ro = body["o"]
+      ro = json.loads(ro)
+      ro["Password"] = "secret"
+      ro = json.dumps(ro)
+      body["o"] = ro
+      body = json.dumps(body)
+      response["body"] = body
+    except:
+      return None
 
   # log erros and set break state
   def __isResponseOk(self, response, password=False):
