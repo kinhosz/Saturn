@@ -72,9 +72,6 @@ class Foxbit(object):
     return json.dumps(request)
 
   async def __websocketSend(self, request, websocket):
-    errorMsg = "except: "
-    error = False
-
     response = {
       "status": "Success"
     }
@@ -83,37 +80,9 @@ class Foxbit(object):
 
     try:
       await websocket.send(request)
-    except TypeError:
-      errorMsg = errorMsg + "TypeError"
-      error = True
-
-    except websockets.exceptions.ConnectionClosedOK:
-      errorMsg = errorMsg + "ConnectionClosedOK"
-      error = True
-
-    except websockets.exceptions.ConnectionClosedError:
-      errorMsg = errorMsg + "ConnectionClosedError"
-      error = True
-      
-    except websockets.exceptions.InvalidMessage:
-      errorMsg = errorMsg + "InvalidMessage"
-      error = True
-    
-    except websockets.exceptions.PayloadTooBig:
-      errorMsg = errorMsg + "PayloadTooBig"
-      error = True
-    
-    except RuntimeError:
-      errorMsg = errorMsg + "RuntimeError"
-      error = True
-
-    except:
-      errorMsg = errorMsg + "undefined"
-      error = True
-    
-    if error:
-      print("erro ao enviar request")
-      description = "An error occur during send request to websocket. " + errorMsg
+    except Exception as e:
+      print("erro ao enviar request", e)
+      description = "An error occur during send request to websocket.\nCode error: " + str(e)
       response = self.__createErrorResponse(description=description,
                                             path="foxbit.__sendRequest",
                                             body=request)
@@ -125,33 +94,12 @@ class Foxbit(object):
 
     try:
       str_response = await websocket.recv()
-    except  websockets.exceptions.ConnectionClosedOK:
-      print("erro ao receber response. ok")
-      response = self.__createErrorResponse(description="An error occur during receive response from websocket [closed ok]",
+    except Exception as e:
+      print("erro ao receber response.", e)
+      response = self.__createErrorResponse(description="An error occur during receive response from websocket.\nError Code: " + str(e),
                                             path="foxbit.__sendRequest",
                                             body=default_response)
       return response
-    
-    except websockets.exceptions.ConnectionClosedError:
-      print("erro ao receber response. error")
-      response = self.__createErrorResponse(description="An error occur during receive response from websocket [closed error]",
-                                            path="foxbit.__sendRequest",
-                                            body=default_response)
-      return response
-    
-    except websockets.exceptions.RuntimeError:
-      print("erro ao receber response. rte")
-      response = self.__createErrorResponse(description="An error occur during receive response from websocket [rte]",
-                                            path="foxbit.__sendRequest",
-                                            body=default_response)
-      return response
-    
-    except:
-      print("erro ao receber response. udf")
-      response = self.__createErrorResponse(description="An error occur during receive response from websocket [udf]",
-                                            path="foxbit.__sendRequest",
-                                            body=default_response)
-      return response 
 
     try:
       response = json.loads(str_response)
@@ -167,7 +115,7 @@ class Foxbit(object):
   async def __sendRequest(self, request, authentication=False):
     response = {}
 
-    async with websockets.connect(foxbit.URI) as websocket:
+    async with websockets.connect(foxbit.URI, ping_interval=None) as websocket:
       if authentication:
         auth_request = self.__buildRequest(endpoint = "WebAuthenticateUser",
                                            username = self.__username,
