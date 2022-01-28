@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.9 (2022-01-28)
+### Fix
+* **foxbit:** Set ping_interval=None ([`fdb9843`](https://github.com/kinhosz/Saturn/commit/fdb98437cf3ad946a4fd676c0e7804baa7dcc368))
+
 ## v0.1.8 (2022-01-24)
 ### Fix
 * **receive:** Remove unless connectionClosed ([`7fed6b8`](https://github.com/kinhosz/Saturn/commit/7fed6b8a7de6cb161f415b53ae032d099a3cc4db))
