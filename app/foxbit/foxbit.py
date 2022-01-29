@@ -81,7 +81,6 @@ class Foxbit(object):
     try:
       await websocket.send(request)
     except Exception as e:
-      print("erro ao enviar request", e)
       description = "An error occur during send request to websocket.\nCode error: " + str(e)
       response = self.__createErrorResponse(description=description,
                                             path="foxbit.__sendRequest",
@@ -95,7 +94,6 @@ class Foxbit(object):
     try:
       str_response = await websocket.recv()
     except Exception as e:
-      print("erro ao receber response.", e)
       response = self.__createErrorResponse(description="An error occur during receive response from websocket.\nError Code: " + str(e),
                                             path="foxbit.__sendRequest",
                                             body=default_response)
@@ -106,7 +104,6 @@ class Foxbit(object):
       response["o"] = json.loads(response["o"])
       response["status"] = "Success"
     except:
-      print("erro ao manipular response")
       response = self.__createErrorResponse(description="An error occur during manipulate response from websocket",
                                             path="foxbit.__sendRequest",
                                             body=str_response)
