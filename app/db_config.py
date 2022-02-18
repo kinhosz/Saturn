@@ -6,4 +6,4 @@ def db_config():
     print("===Finish database configuration===")
 
 if __name__ == "__main__":
-    main()
+    db_config()
