@@ -2,9 +2,9 @@ from algorithms import Queue
 import asyncio
 import session
 import foxbit
-import websockets
 import re
 import json
+from db.query import *
 
 class UserSession(object):
   def __init__(self, chat_id):
@@ -54,11 +54,11 @@ class UserSession(object):
     if message["from"] == "telegram":
       await self.__handleTelegramMessages(message["data"])
 
-  async def __handleTelegramMessages(self, response):
-    if 'text' not in response.keys():
+  async def __handleTelegramMessages(self, message):
+    if 'text' not in message.keys():
       return None
 
-    msg = response['text']
+    msg = message['text']
     if self.__isCriticalState():
       await self.__handleCriticalInformation(msg)
     else:
@@ -179,7 +179,7 @@ class UserSession(object):
     elif msg == "/login":
       self.__login()
     elif msg == "/trade_start":
-      self.__startTrade()
+      await self.__startTrade()
 
   def __login(self):
     if self.__state != session.State.START:
@@ -189,12 +189,18 @@ class UserSession(object):
     self.__state = session.State.WAITING_FOR_EMAIL
     self.__sendManagerMessage(session.ASK_EMAIL)
 
-  def __startTrade(self):
-    if not self.__assertLogged():
-      return None
+  async def __startTrade(self):
+    db_response = find_equal(table = 'users',
+                          column = 'chat_id',
+                          equal_to = str(self.__id),
+                          view = ['email', 'encrypted_password'])
+    
+    email = db_response[0][0]
+    password = db_response[0][1]
 
-    self.__state = session.State.WAITING_FOR_HISTORY_LIMIT
-    self.__sendManagerMessage(session.ASK_HISTORY_LIMIT)
+    response = await self.__getCurrencyValue()
+    price = response["Ask"]
+    self.__sendManagerMessage(session.current_price(price))
 
   def __createTrade(self, limit, valley, profit):
     self.__trade = foxbit.Trade(limit, valley, profit)

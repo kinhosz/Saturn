@@ -59,11 +59,11 @@ class Manager(object):
     if chat_id not in self.__activeSessions.keys():
       self.__createSession(chat_id)
 
-    response = {
+    request = {
       "from": "telegram",
       "data": message
     }
-    self.__activeSessions[chat_id]["buffer"].push(response)
+    self.__activeSessions[chat_id]["buffer"].push(request)
 
   def __createSession(self, chat_id):
     uSession = session.UserSession(chat_id)
