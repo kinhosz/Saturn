@@ -28,3 +28,6 @@ def less_than(table, column, less_than, view = ['*']):
 
     return execute(sql_query)
 
+def manual(sql_query):
+    return execute(sql_query)
+

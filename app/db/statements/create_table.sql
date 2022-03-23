@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS orders(
     id SERIAL PRIMARY KEY,
     ask REAL,
     bid REAL,
-    event_date TIMESTAMP
+    event_date TIMESTAMP default current_timestamp
 );
 
 CREATE TABLE IF NOT EXISTS trades(
