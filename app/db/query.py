@@ -8,6 +8,7 @@ def execute(sql_query):
         cursor.execute(sql_query)
     except Exception as e:
         print("Error when executing this query:", sql_query, "Exception:", e)
+        return None
     
     response = cursor.fetchall()
     handshake.disconnect(conn)

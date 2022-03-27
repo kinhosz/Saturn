@@ -8,6 +8,7 @@ def execute(sql_insert):
         cursor.execute(sql_insert)
     except Exception as e:
         print("Error when executing this query:", sql_insert, "Exception:", e)
+        return None
     
     response = cursor.fetchall()
     handshake.disconnect(conn)
