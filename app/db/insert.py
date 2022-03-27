@@ -16,9 +16,9 @@ def execute(sql_insert):
     return response
 
 def insert(table, columns, values):
-    sql_insert = "INSERT INTO " + table
-    sql_insert = sql_insert + "(" + ", ".join(columns) + ") "
-    sql_insert = sql_insert + "VALUES(" + ", ".join(values) + ") "
+    sql_insert = "INSERT INTO " + str(table)
+    sql_insert = sql_insert + "(" + ", ".join(handshake.convertEachToStr(columns)) + ") "
+    sql_insert = sql_insert + "VALUES(" + ", ".join(handshake.convertEachToStr(values)) + ") "
     sql_insert = sql_insert + "RETURNING " + "id"
 
     return execute(sql_insert)

@@ -60,3 +60,9 @@ def log_error(status, description, path, body):
         + f"registre este erro no nosso repositório: https://github.com/kinhosz/Saturn/issues/new"
 
   return msg
+
+def accountNotFound():
+  msg = "Esta conta no telegram não existe no nosso banco de dados. Por favor, " \
+      + "entre em contato conosco."
+    
+  return msg

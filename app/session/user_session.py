@@ -192,18 +192,31 @@ class UserSession(object):
     self.__sendManagerMessage(session.ASK_EMAIL)
 
   async def __startTrade(self):
-    db_response = db.find_equal(table = 'users',
-                          column = 'chat_id',
-                          equal_to = str(self.__id),
-                          view = ['email', 'encrypted_password'])
-    
-    email = db_response[0][0]
-    password = db_response[0][1]
+    await self.__authenticate()
 
     response = await self.__getCurrencyValue()
     price = response["Ask"]
     self.__sendManagerMessage(session.current_price(price))
-    # TODO: finalizar isso
+
+    order_id = db.insert("orders", ["ask", "bid"], [response["Ask"], response["Bid"]])[0][0]
+
+    accountId = await self.__getAccountId()
+    clientOrderId = await self.__getClientOrderId(accountId)
+
+    response = await self.__fb.buy(accountId, clientOrderId)
+    if not self.__isResponseOk(response):
+      return None
+
+    if response["o"]["status"] == "Accepted":
+      self.__sendManagerMessage(session.currency_buyed(price))
+    else:
+      self.__sendManagerMessage(session.log_error(description="Erro ao comprar moeda",
+                                                          path="user_session.__tradeLife",
+                                                          body=json.dumps(response)))
+      return None
+
+    user_id = db.find_equal("users", "chat_id", str(self.__id), ["id"])[0][0]
+    db.insert("trades", ["user_id", "order_bought_id"], [user_id, order_id])
 
   def __createTrade(self, limit, valley, profit):
     self.__trade = foxbit.Trade(limit, valley, profit)
@@ -331,9 +344,13 @@ class UserSession(object):
     return response["data"]
 
   async def __authenticate(self):
-    user_credentials = db.find_equal("users", "chat_id", self.__id, ["email", "encrypted_password"])[0]
-    email = user_credentials[0]
-    password = user_credentials[1]
+    user_credentials = db.find_equal("users", "chat_id", str(self.__id), ["email", "encrypted_password"])
+
+    if len(user_credentials) == 0:
+      self.__sendManagerMessage(session.accountNotFound())
+
+    email = user_credentials[0][0]
+    password = user_credentials[0][1]
 
     response = await self.__fb.authenticate(email, password)
     if not self.__isResponseOk(response, password=True):

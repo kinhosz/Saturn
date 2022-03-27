@@ -16,12 +16,12 @@ def execute(sql_update):
     return response
 
 def update(table, id, columns, values):
-    sql_update = "UPDATE " + table + " SET"
+    sql_update = "UPDATE " + str(table) + " SET"
     
     data_size = len(columns)
     for i in data_size:
-        column = columns[i]
-        value = values[i]
+        column = str(columns[i])
+        value = str(values[i])
 
         sql_update = sql_update + " " + column + " = " + value
         if i < data_size - 1:

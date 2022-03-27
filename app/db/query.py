@@ -16,16 +16,16 @@ def execute(sql_query):
     return response
 
 def find_equal(table, column, equal_to, view = ['*']):
-    sql_query = 'SELECT ' + ', '.join(view)
-    sql_query = sql_query + ' FROM ' + table
-    sql_query = sql_query + ' WHERE ' + column + ' = \'' + equal_to + '\''
+    sql_query = 'SELECT ' + ', '.join(handshake.convertEachToStr(view))
+    sql_query = sql_query + ' FROM ' + str(table)
+    sql_query = sql_query + ' WHERE ' + str(column) + ' = \'' + str(equal_to) + '\''
 
     return execute(sql_query)
 
 def less_than(table, column, less_than, view = ['*']):
-    sql_query = 'SELECT ' + ', '.join(view)
-    sql_query = sql_query + ' FROM ' + table
-    sql_query = sql_query + ' WHERE ' + column + ' = ' + less_than
+    sql_query = 'SELECT ' + ', '.join(handshake.convertEachToStr(view))
+    sql_query = sql_query + ' FROM ' + str(table)
+    sql_query = sql_query + ' WHERE ' + str(column) + ' = ' + str(less_than)
 
     return execute(sql_query)
 

@@ -2,6 +2,13 @@ import psycopg2 as psy
 import re
 import os
 
+def convertEachToStr(unsafe_list):
+    safety = []
+    for data in unsafe_list:
+        safety.append(str(data))
+
+    return safety
+
 def getCredentials():
     cred = {
         'user': re.search('(?<=postgres://)\w+', os.getenv('DATABASE_URL')).group(0),
