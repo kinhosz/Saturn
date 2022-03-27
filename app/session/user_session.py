@@ -311,7 +311,7 @@ class UserSession(object):
     accountId = await self.__getAccountId()
     clientOrderId = await self.__getClientOrderId(accountId)
 
-    order_bought_id = db.find_equal("trades", "trades", trade_id, "order_bought_id")[0][0]
+    order_bought_id = db.find_equal("trades", "id", trade_id, ["order_bought_id"])[0][0]
     bought = db.find_equal("orders", "id", order_bought_id, ["ask"])[0][0]
     sold = db.find_equal("orders", "id", order_id, ["bid"])[0][0]
 
@@ -323,11 +323,12 @@ class UserSession(object):
       self.__sendManagerMessage(session.currency_sold(bought, sold))
     else:
       self.__sendManagerMessage(session.log_error(description="Erro ao vender moeda",
-                                                          path="user_session.__tradeLife",
-                                                          body=json.dumps(response)))
+                                                  path="user_session.__tradeLife",
+                                                  body=json.dumps(response),
+                                                  status=response["o"]["status"]))
       return None
 
-    db.update("trade", trade_id, ["order_sold_id"], [order_id])
+    db.update("trades", trade_id, ["order_sold_id"], [order_id])
 
   async def __getAccountId(self):
     response = await self.__fb.getAccountId()

@@ -36,10 +36,10 @@ class FServer(object):
         return db.manual(sql_query)
     
     def __schedule_sells(self, currencyValue, trades):
-        order_id = db.insert("orders", ["ask", "bid"], [currencyValue["Ask"], currencyValue["Bid"]])[0]
+        order_id = db.insert("orders", ["ask", "bid"], [currencyValue["Ask"], currencyValue["Bid"]])[0][0]
 
         for trade in trades:
-            self.__schedule_sell(trade, order_id)
+            self.__schedule_sell(trade[0], order_id)
 
 
     def __schedule_sell(self, trade_id, order_id):

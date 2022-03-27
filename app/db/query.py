@@ -18,7 +18,12 @@ def execute(sql_query):
 def find_equal(table, column, equal_to, view = ['*']):
     sql_query = 'SELECT ' + ', '.join(handshake.convertEachToStr(view))
     sql_query = sql_query + ' FROM ' + str(table)
-    sql_query = sql_query + ' WHERE ' + str(column) + ' = \'' + str(equal_to) + '\''
+    sql_query = sql_query + ' WHERE ' + str(column) + ' = '
+
+    if str(equal_to).isnumeric():
+        sql_query = sql_query + str(equal_to)
+    else:
+        sql_query = sql_query + "\'" + str(equal_to) + "\'"
 
     return execute(sql_query)
 
