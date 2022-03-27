@@ -4,7 +4,7 @@ import session
 import foxbit
 import re
 import json
-from db.query import *
+import db
 
 class UserSession(object):
   def __init__(self, chat_id):
@@ -53,6 +53,8 @@ class UserSession(object):
   async def __handleMsg(self, message):
     if message["from"] == "telegram":
       await self.__handleTelegramMessages(message["data"])
+    elif message["from"] == "manager":
+      await self.__handleManagerMessages(message["data"])
 
   async def __handleTelegramMessages(self, message):
     if 'text' not in message.keys():
@@ -190,7 +192,7 @@ class UserSession(object):
     self.__sendManagerMessage(session.ASK_EMAIL)
 
   async def __startTrade(self):
-    db_response = find_equal(table = 'users',
+    db_response = db.find_equal(table = 'users',
                           column = 'chat_id',
                           equal_to = str(self.__id),
                           view = ['email', 'encrypted_password'])
@@ -201,6 +203,7 @@ class UserSession(object):
     response = await self.__getCurrencyValue()
     price = response["Ask"]
     self.__sendManagerMessage(session.current_price(price))
+    # TODO: finalizar isso
 
   def __createTrade(self, limit, valley, profit):
     self.__trade = foxbit.Trade(limit, valley, profit)
@@ -282,3 +285,59 @@ class UserSession(object):
       return None
 
     return response["o"]
+
+  # handle manager commands and operations
+  async def __handleManagerMessages(self, request):
+    if request["operation"] == "sell_trade":
+      await self.__sellTrade(request["trade_id"], request["order_id"])
+  
+  # sell a currency and close trade
+  async def __sellTrade(self, trade_id, order_id):
+    await self.__authenticate()
+
+    accountId = await self.__getAccountId()
+    clientOrderId = await self.__getClientOrderId(accountId)
+
+    order_bought_id = db.find_equal("trades", "trades", trade_id, "order_bought_id")[0][0]
+    bought = db.find_equal("orders", "id", order_bought_id, ["ask"])[0][0]
+    sold = db.find_equal("orders", "id", order_id, ["bid"])[0][0]
+
+    response = await self.__fb.sell(accountId, clientOrderId)
+    if not self.__isResponseOk(response):
+      return None
+
+    if response["o"]["status"] == "Accepted":
+      self.__sendManagerMessage(session.currency_sold(bought, sold))
+    else:
+      self.__sendManagerMessage(session.log_error(description="Erro ao vender moeda",
+                                                          path="user_session.__tradeLife",
+                                                          body=json.dumps(response)))
+      return None
+
+    db.update("trade", trade_id, ["order_sold_id"], [order_id])
+
+  async def __getAccountId(self):
+    response = await self.__fb.getAccountId()
+    if not self.__isResponseOk(response):
+      return None
+    
+    return response["data"]
+
+  async def __getClientOrderId(self, accountId):
+    response = await self.__fb.getClientOrderId(accountId)
+    if not self.__isResponseOk(response):
+      return None
+
+    return response["data"]
+
+  async def __authenticate(self):
+    user_credentials = db.find_equal("users", "chat_id", self.__id, ["email", "encrypted_password"])[0]
+    email = user_credentials[0]
+    password = user_credentials[1]
+
+    response = await self.__fb.authenticate(email, password)
+    if not self.__isResponseOk(response, password=True):
+      return None
+
+    if response["o"]["Authenticated"] == False:
+      self.__sendManagerMessage(session.INVALID_EMAIL_OR_PASSWORD)
