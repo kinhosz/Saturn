@@ -34,6 +34,7 @@ def connect():
             password = db['password'],
             port = db['port']
         )
+        conn.autocommit = True
 
         cursor = conn.cursor()
         cursor.execute("SELECT version()")
