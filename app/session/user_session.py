@@ -192,7 +192,10 @@ class UserSession(object):
     self.__sendManagerMessage(session.ASK_EMAIL)
 
   async def __startTrade(self):
-    await self.__authenticate()
+    success = await self.__authenticate()
+
+    if not success:
+      return None
 
     response = await self.__getCurrencyValue()
     price = response["Ask"]
@@ -349,13 +352,17 @@ class UserSession(object):
 
     if len(user_credentials) == 0:
       self.__sendManagerMessage(session.accountNotFound())
+      return False
 
     email = user_credentials[0][0]
     password = user_credentials[0][1]
 
     response = await self.__fb.authenticate(email, password)
     if not self.__isResponseOk(response, password=True):
-      return None
+      return False
 
     if response["o"]["Authenticated"] == False:
       self.__sendManagerMessage(session.INVALID_EMAIL_OR_PASSWORD)
+      return False
+    
+    return True
