@@ -1,4 +1,4 @@
-from app.db import handshake
+from db import handshake
 
 def execute(sql_insert):
     conn = handshake.connect()

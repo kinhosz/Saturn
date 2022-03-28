@@ -1,7 +1,7 @@
 import psycopg2 as psy
 import re
 import os
-from app.db import handshake
+from db import handshake
 
 def execute(filename, cursor):
     path = './app/db/statements/' + filename + '.sql'
