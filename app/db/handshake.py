@@ -13,9 +13,9 @@ def getCredentials():
     cred = {
         'user': re.search('(?<=postgres://)\w+', os.getenv('DATABASE_URL')).group(0),
         'password': re.search('postgres://\w+:(\w+)', os.getenv('DATABASE_URL')).group(1),
-        'host': re.search('postgres://\w+:\w+@(\w+)', os.getenv('DATABASE_URL')).group(1),
-        'port': re.search('postgres://\w+:\w+@\w+:(\w+)', os.getenv('DATABASE_URL')).group(1),
-        'name': re.search('postgres://\w+:\w+@\w+:\w+/(\w+)', os.getenv('DATABASE_URL')).group(1)
+        'host': re.search('postgres://\w+:\w+@([^:]*)', os.getenv('DATABASE_URL')).group(1),
+        'port': re.search('postgres://\w+:\w+@[^:]*:(\w+)', os.getenv('DATABASE_URL')).group(1),
+        'name': re.search('postgres://\w+:\w+@[^:]*:\w+/(\w+)', os.getenv('DATABASE_URL')).group(1)
     }
 
     return cred
