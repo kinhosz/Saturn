@@ -6,7 +6,7 @@ class FServer(object):
     def __init__(self, buffer):
         self.__foxbitClient = foxbit.Foxbit()
         self.__DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS = 600
-        self.__taxProfit = 0.1
+        self.__taxProfit = 0.05
         self.__managerBuffer = buffer
 
     async def listen(self):
