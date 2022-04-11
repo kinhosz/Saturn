@@ -2,6 +2,25 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.0 (2022-04-11)
+### Feature
+* **session/buy:** Add a buy service ([`b59cbfa`](https://github.com/kinhosz/Saturn/commit/b59cbfa732cb4bbd634e27576852e332ac9a904a))
+* **db/update:** Create update queries to database ([`cb6950c`](https://github.com/kinhosz/Saturn/commit/cb6950ca87b48f9c1808f1d23890d14e399f7c90))
+* **fserver.sellTrade:** Sell order and close trade ([`4d65b4e`](https://github.com/kinhosz/Saturn/commit/4d65b4ef2f0237198775abe146e5a02ddae37590))
+* **fserver:** Add insert database interface ([`2f622e8`](https://github.com/kinhosz/Saturn/commit/2f622e817275e0ab45adc3841218fadbc33fa2d8))
+* **fserver:** Adding a listenner for foxbit currency values ([`0ab86d7`](https://github.com/kinhosz/Saturn/commit/0ab86d76577981baf24f55e59f3b53cc5430d7a7))
+* **db:** Sql queries ([`5b4ac56`](https://github.com/kinhosz/Saturn/commit/5b4ac56373d902b675f3515bc45aaafbf4166781))
+* **database:** Adding mult trades for a single account ([`ccdaa4a`](https://github.com/kinhosz/Saturn/commit/ccdaa4ada7dffd6cb03d46aa8f20e86be0f077fa))
+
+### Fix
+* **fserver:** Change the default profit value ([`8435944`](https://github.com/kinhosz/Saturn/commit/843594461b0cde7ca5647fcbb6d8e607e3cb0276))
+* **workflow:** Fix name and test release ([`f7f6e22`](https://github.com/kinhosz/Saturn/commit/f7f6e22c474eaa6eeed88771996cbe480baf6d48))
+* **user_session:** Fix start_trade ([`8b3dfb1`](https://github.com/kinhosz/Saturn/commit/8b3dfb1384df57847bd3cde10483475fd2185695))
+* **handshake:** Database_url regex ([`269602c`](https://github.com/kinhosz/Saturn/commit/269602c866d338378958df05359afa67a17f50da))
+* **sell_trade:** Selling trades ([`76d0ae7`](https://github.com/kinhosz/Saturn/commit/76d0ae7350337d2d9e592f88c09d92a4ca07985c))
+* **db:** Add autocommit command ([`cee8ac7`](https://github.com/kinhosz/Saturn/commit/cee8ac7a299470ef3ff6b820aceb60226e438468))
+* **db/create_table:** Replace serial to int ([`f8e2b8d`](https://github.com/kinhosz/Saturn/commit/f8e2b8d4f24fd29e80b740a1c7d6dde8b13e67e6))
+
 ## v0.1.9 (2022-01-28)
 ### Fix
 * **foxbit:** Set ping_interval=None ([`fdb9843`](https://github.com/kinhosz/Saturn/commit/fdb98437cf3ad946a4fd676c0e7804baa7dcc368))
