@@ -9,6 +9,7 @@ class Wallet(object):
         self.__ceil = None
         self.__floor = None
         self.__trades = None
+        self.__userID = None
     
     def profitRate(self):
         if self.__profitRate != None:
@@ -78,7 +79,14 @@ class Wallet(object):
 
         return self.__trades
 
-
+    def userID(self):
+        if self.__userID != None:
+            return self.__userID
         
+        sql = "SELECT user_id" \
+            + "FROM wallets" \
+            + "WHERE id = " + str(self.__id)
+        
+        self.__userID = db.manual(sql)[0][0]
 
-    
+        return self.__userID
