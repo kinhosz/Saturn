@@ -15,8 +15,8 @@ class Wallet(object):
         if self.__profitRate != None:
             return self.__profitRate
         
-        sql = "SELECT profit_rate" \
-            + "FROM wallets" \
+        sql = "SELECT profit_rate " \
+            + "FROM wallets " \
             + "WHERE id = " + str(self.__id)
 
         self.__profitRate = db.manual(sql)[0][0]
@@ -27,8 +27,8 @@ class Wallet(object):
         if self.__totalAmountBRL != None:
             return self.__totalAmountBRL
         
-        sql = "SELECT total_amount_BRL" \
-            + "FROM wallets" \
+        sql = "SELECT total_amount_BRL " \
+            + "FROM wallets " \
             + "WHERE id = " + str(self.__id)
 
         self.__totalAmountBRL = db.manual(sql)[0][0]
@@ -39,8 +39,8 @@ class Wallet(object):
         if self.__ceil != None:
             return self.__ceil
         
-        sql = "SELECT ceil" \
-            + "FROM wallets" \
+        sql = "SELECT ceil " \
+            + "FROM wallets " \
             + "WHERE id = " + str(self.__id)
 
         self.__ceil = db.manual(sql)[0][0]
@@ -51,8 +51,8 @@ class Wallet(object):
         if self.__floor != None:
             return self.__floor
         
-        sql = "SELECT floor" \
-            + "FROM wallets" \
+        sql = "SELECT floor " \
+            + "FROM wallets " \
             + "WHERE id = " + str(self.__id)
 
         self.__floor = db.manual(sql)[0][0]
@@ -63,8 +63,8 @@ class Wallet(object):
         if self.__trades != None:
             return self.__trades
         
-        sql = "SELECT id" \
-            + "FROM trades" \
+        sql = "SELECT id " \
+            + "FROM trades " \
             + "WHERE id = " + str(self.__id)
         
         trade_ids = db.manual(sql)
@@ -83,8 +83,8 @@ class Wallet(object):
         if self.__userID != None:
             return self.__userID
         
-        sql = "SELECT user_id" \
-            + "FROM wallets" \
+        sql = "SELECT user_id " \
+            + "FROM wallets " \
             + "WHERE id = " + str(self.__id)
         
         self.__userID = db.manual(sql)[0][0]
