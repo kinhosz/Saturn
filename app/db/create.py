@@ -21,6 +21,8 @@ def execute(filename, cursor):
 
 def commands(cursor):
     execute('create_table', cursor)
+    execute('credit_wallets', cursor)
+    execute('alter_trades', cursor)
 
 def main():
     conn = handshake.connect()

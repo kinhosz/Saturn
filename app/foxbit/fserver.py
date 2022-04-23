@@ -1,6 +1,7 @@
 import asyncio
 import foxbit
 import db
+from scopes import *
 
 class FServer(object):
     def __init__(self, buffer):
@@ -13,11 +14,15 @@ class FServer(object):
         while True:
             currency_value_response = await self.__getCurrencyValue()
             bid = currency_value_response["Bid"]
+            ask = currency_value_response["Ask"]
 
             trades_open = self.__getOpenTrades(bid/(1.0 + self.__taxProfit))
 
             if len(trades_open) > 0:
                 self.__schedule_sells(currency_value_response, trades_open)
+            
+            wallets = Wallets.need_relocation(ask)
+            self.__schedule_bundle_relocations(wallets, ask)
 
             await asyncio.sleep(self.__DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS)
 
@@ -52,5 +57,24 @@ class FServer(object):
             }
         }
 
+        self.__managerBuffer.push(request) 
+    
+    def __schedule_bundle_relocations(self, wallets, ask):
+        for wallet in wallets:
+            self.__schedule_relocation(wallet, ask)
+    
+    def __schedule_relocation(self, wallet, ask):
+        if wallet.canRelocate(ask) == False:
+            return None
+
+        request = {
+            "from": "foxbit",
+            "data": {
+                "operation": "wallet_relocation",
+                "wallet_id": wallet.id(),
+                "ask": ask
+            }
+        }
+
         self.__managerBuffer.push(request)
-        
+
