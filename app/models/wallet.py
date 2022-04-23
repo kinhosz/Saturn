@@ -11,6 +11,9 @@ class Wallet(object):
         self.__trades = None
         self.__userID = None
     
+    def id(self):
+        return self.__id
+    
     def profitRate(self):
         if self.__profitRate != None:
             return self.__profitRate
@@ -90,3 +93,14 @@ class Wallet(object):
         self.__userID = db.manual(sql)[0][0]
 
         return self.__userID
+    
+    def relocateAmount(self):
+        return self.totalAmountBRL()/3
+
+    def canRelocate(self, price):
+        MINIMUM_BTC_EXCHANGE = 0.00002
+        free_amount = self.relocateAmount()
+
+        minimum_amount = price * MINIMUM_BTC_EXCHANGE
+
+        return minimum_amount < free_amount
