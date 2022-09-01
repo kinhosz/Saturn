@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.0 (2022-09-01)
+### Feature
+* Add search21 model for a project ([`2331e8c`](https://github.com/kinhosz/Saturn/commit/2331e8cb5f8a50a648249ea3fe96a208c2d6908d))
+
 ## v0.2.0 (2022-04-11)
 ### Feature
 * **session/buy:** Add a buy service ([`b59cbfa`](https://github.com/kinhosz/Saturn/commit/b59cbfa732cb4bbd634e27576852e332ac9a904a))
