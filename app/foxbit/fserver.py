@@ -65,7 +65,6 @@ class FServer(object):
             while successful == False:
                 url = "https://api.pi.delivery/v1/pi?start=" + str(start) + "&numberOfDigits=" + str(DIGITS)
                 response = requests.get(url)
-                print(response.status_code)
 
                 if response.status_code == 200:
                     raw = response.content.decode("utf-8")
