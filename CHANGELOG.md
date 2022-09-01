@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.2 (2022-09-01)
+### Fix
+* Remove print ([`d394d84`](https://github.com/kinhosz/Saturn/commit/d394d84c5927bfeeda3424f02821b3373c8ad281))
+
 ## v0.3.1 (2022-09-01)
 ### Performance
 * Improve ping and log messages ([`ceac5db`](https://github.com/kinhosz/Saturn/commit/ceac5dbc2e6564c6792e4d7444e6d3b3b0e40d2f))
