@@ -46,6 +46,8 @@ class Manager(object):
       self.__sendToServer(response["data"]["id"], response["data"]["message"])
     elif response["from"] == "foxbit":
       self.__foxbitService(response["data"])
+    elif response["from"] == "search21":
+      self.__search21(response["data"])
 
   async def __dispatch(self, message):
     if 'message' in message.keys():
@@ -100,3 +102,17 @@ class Manager(object):
     }
 
     self.__requestToSession(chat_id, request)
+
+  def __search21(self, message):
+    user_id = db.find_equal("users", "email", "scruz.josecarlos@gmail.com", ["id"])[0][0]
+    chat_id = db.find_equal("users", "id", user_id, ["chat_id"])[0][0]
+
+    request = {
+      "from": "manager",
+      "data": {
+        "id": chat_id,
+        "message": message
+      }
+    }
+
+    self.__serverBuffer.push(request)

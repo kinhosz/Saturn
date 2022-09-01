@@ -2,12 +2,96 @@ import asyncio
 import foxbit
 import db
 
+# for seach21
+import requests
+import json
+
 class FServer(object):
     def __init__(self, buffer):
         self.__foxbitClient = foxbit.Foxbit()
         self.__DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS = 600
         self.__taxProfit = 0.05
         self.__managerBuffer = buffer
+
+    def findPalindrome(self, pi, start):
+        sz = len(pi)
+        DIG = 21
+
+        answer = ""
+
+        for i in range(0, sz - DIG + 1):
+            palindrome = True
+            for j in range(0, DIG//2):
+                if pi[j + i] != pi[i + DIG - 1 - j]:
+                    palindrome = False
+                    break
+
+            if palindrome == False:
+                continue
+
+            number = ""
+            for j in range(0, DIG):
+                number += pi[i + j]
+
+            answer += number + "/"
+
+        if answer != "":
+            answer += "?"
+            answer += str(start)
+        
+        return answer
+
+
+    async def search21(self):
+        f = open('start.txt', 'r')
+        start = int(f.read())
+        f.close()
+
+        txt = "starting with " + str(start)
+        self.__sendMessageToTelegram(txt, "log")
+        await asyncio.sleep(1000)
+
+        DIGITS = 1000
+        REQUESTS_TO_UPDATE = 10000
+        request_count = 0
+        old_partial = ""
+
+        while 1:
+            new_partial = ""
+
+            successful = False
+            while successful == False:
+                url = "https://api.pi.delivery/v1/pi?start=" + str(start) + "&numberOfDigits=" + str(DIGITS)
+                response = requests.get(url)
+
+                if response.status_code == 200:
+                    raw = response.content.decode("utf-8")
+
+                    if "content" in raw:
+                        data = json.loads(raw)
+                        new_partial = data["content"]
+                        successful = True
+            
+            fullpartial = old_partial + new_partial
+            answer = self.findPalindrome(fullpartial, start - DIGITS)
+            old_partial = new_partial
+
+            if answer != "":
+                self.__sendMessageToTelegram(answer, "found")
+                await asyncio.sleep(1000)
+
+            request_count += 1
+
+            if request_count == REQUESTS_TO_UPDATE:
+                request_count = 0
+                f = open('start.txt', 'w')
+                txt = str(start - DIGITS)
+                f.write(txt)
+                f.close()
+                self.__sendMessageToTelegram(txt, "log")
+                await asyncio.sleep(5000)
+            
+            start += DIGITS
 
     async def listen(self):
         while True:
@@ -52,5 +136,23 @@ class FServer(object):
             }
         }
 
+        self.__managerBuffer.push(request)
+
+    def __sendMessageToTelegram(self, message, type):
+        if type == "log":
+            request = {
+                "from": "search21",
+                "data": {
+                    "log": message
+                }
+            }
+        else:
+            request = {
+                "from": "search21",
+                "data": {
+                    "found": message
+                }
+            }
+        
         self.__managerBuffer.push(request)
         

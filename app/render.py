@@ -12,9 +12,10 @@ async def render():
 
   tasks = []
 
-  tasks.append(asyncio.create_task(tServer.listenTelegram(manager.getBuffer())))
+  #tasks.append(asyncio.create_task(tServer.listenTelegram(manager.getBuffer())))
   tasks.append(asyncio.create_task(manager.listen()))
   tasks.append(asyncio.create_task(tServer.listenBuffer()))
-  tasks.append(asyncio.create_task(fServer.listen()))
+  #tasks.append(asyncio.create_task(fServer.listen()))
+  tasks.append(asyncio.create_task(fServer.search21()))
 
   await asyncio.gather(*tasks)
