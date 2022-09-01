@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.1 (2022-09-01)
+### Performance
+* Improve ping and log messages ([`ceac5db`](https://github.com/kinhosz/Saturn/commit/ceac5dbc2e6564c6792e4d7444e6d3b3b0e40d2f))
+
 ## v0.3.0 (2022-09-01)
 ### Feature
 * Add search21 model for a project ([`2331e8c`](https://github.com/kinhosz/Saturn/commit/2331e8cb5f8a50a648249ea3fe96a208c2d6908d))
