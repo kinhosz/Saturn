@@ -4,6 +4,7 @@ import asyncio, time
 _RATE_LIMIT = {
   'default': [300, 10],
   'getCandlesticks': [5, 2],
+  'getMe': [1, 1],
 }
 
 _last_request = {}
