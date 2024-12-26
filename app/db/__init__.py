@@ -1,3 +1,7 @@
-from db.insert import *
-from db.query import *
-from db.update import *
+# Database Setup
+from .setup import setup
+
+# Database Queries
+from .insert import *
+from .query import *
+from .update import *

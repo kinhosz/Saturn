@@ -1,8 +1,8 @@
-from app.db import create
+from .db import migrate
 
 def db_config():
-    print("===Configurate database===")
-    create.main()
+    print("===Configurating database===")
+    migrate.main()
     print("===Finish database configuration===")
 
 if __name__ == "__main__":

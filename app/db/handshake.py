@@ -1,6 +1,7 @@
 import psycopg2 as psy
 import re
 import os
+from .setup import setup
 
 def convertEachToStr(unsafe_list):
     safety = []
@@ -15,21 +16,20 @@ def getCredentials():
         'password': re.search('postgres://\w+:(\w+)', os.getenv('DATABASE_URL')).group(1),
         'host': re.search('postgres://\w+:\w+@([^:]*)', os.getenv('DATABASE_URL')).group(1),
         'port': re.search('postgres://\w+:\w+@[^:]*:(\w+)', os.getenv('DATABASE_URL')).group(1),
-        'name': re.search('postgres://\w+:\w+@[^:]*:\w+/(\w+)', os.getenv('DATABASE_URL')).group(1)
+        'database': re.search('postgres://\w+:\w+@[^:]*:\w+/(\w+)', os.getenv('DATABASE_URL')).group(1)
     }
-
     return cred
 
 def connect():
     db = getCredentials()
+    setup(db)
 
     conn = None
-    
     try:
         print("Connecting to PostgreSQL...")
         conn = psy.connect(
             host = db['host'],
-            database = db['name'],
+            database = db['database'],
             user = db['user'],
             password = db['password'],
             port = db['port']
