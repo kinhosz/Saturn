@@ -5,6 +5,8 @@ _RATE_LIMIT = {
   'default': [300, 10],
   'getCandlesticks': [5, 2],
   'getMe': [1, 1],
+  'getOrder': [30, 2],
+  'getTradingFees': [1, 2],
 }
 
 _last_request = {}

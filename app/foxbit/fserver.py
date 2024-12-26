@@ -1,10 +1,12 @@
 import asyncio
-import foxbit
+from datetime import datetime
+from .foxbit import Foxbit
+from .constants import *
 
 class FServer(object):
     def __init__(self, buffer):
-        self._foxbit = foxbit.Foxbit()
-        self.__DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS = 60
+        self._foxbit = Foxbit()
+        self.__DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS = 600
 
     async def listen(self):
         while True:
@@ -24,3 +26,15 @@ class FServer(object):
             return None
 
         return candlesticks[0]['close_price']
+
+    async def _createOrderLimit(self, side, quantity, price):
+        client_order_id = str(int(datetime.now().timestamp()))
+        res = await self._foxbit.createOrderLimit(
+            side=side, client_order_id=client_order_id, quantity=quantity, price=price
+        )
+
+        return res
+
+    async def _getOrder(self, order_id):
+        order = await self._foxbit.getOrder(order_id)
+        return order
