@@ -4,7 +4,7 @@ from .foxbit import Foxbit
 from .constants import *
 
 class FServer(object):
-    def __init__(self, buffer):
+    def __init__(self):
         self._foxbit = Foxbit()
         self.__DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS = 600
 

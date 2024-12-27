@@ -5,20 +5,20 @@ from app.algorithms import Queue
 
 class TServer(object):
   def __init__(self):
-    self.__tbot = telepot.Bot(os.getenv('telegram_token'))
+    self._tbot = telepot.Bot(os.getenv('telegram_token'))
     self.__buffer = Queue()
 
   async def listenTelegram(self, buffer):
     DELAY_FOR_RECEIVE_MESSAGES_IN_SECONDS = 0.5
 
     current_id = 0
-    response = self.__tbot.getUpdates()
+    response = self._tbot.getUpdates()
 
     if len(response) > 0:
       current_id = response[-1]['update_id'] + 1
 
     while True:
-      response = self.__tbot.getUpdates(offset = current_id)
+      response = self._tbot.getUpdates(offset = current_id)
       for m in response:
         current_id = m['update_id'] + 1
         response = {
@@ -52,4 +52,4 @@ class TServer(object):
   async def __sender(self, chat_id, message):
     DELAY_FOR_SEND_MESSAGE_TO_CHAT_IN_SECONDS = 0.1
     await asyncio.sleep(DELAY_FOR_SEND_MESSAGE_TO_CHAT_IN_SECONDS)
-    self.__tbot.sendMessage(chat_id, message)
+    self._tbot.sendMessage(chat_id, message)

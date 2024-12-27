@@ -1,106 +1,107 @@
-from algorithms import Queue
 import asyncio
-import session
-import foxbit
-import re
 import json
-import db
+import re
+
+from app.algorithms import Queue
+from app import session
+from app import foxbit
+from app import db
 
 class UserSession(object):
   def __init__(self, chat_id):
-    self.__id = chat_id
-    self.__buffer = Queue()
-    self.__state = session.State.START
-    self.__callbackBuffer = None
-    self.__fb = None
+    self._id = chat_id
+    self._buffer = Queue()
+    self._state = session.State.START
+    self._callbackBuffer = None
+    self._fb = None
     # user login information
-    self.__username = None
+    self._username = None
     # trade information
-    self.__trade = None
-    self.__tradeTask = None
+    self._trade = None
+    self._tradeTask = None
     # temps values
-    self.__temp = []
+    self._temp = []
 
   def getBuffer(self):
-    return self.__buffer
+    return self._buffer
 
-  def __clearTemp(self):
-    self.__temp = []
+  def _clearTemp(self):
+    self._temp = []
 
-  def __restart(self):
-    self.__state = session.State.START
-    self.__buffer = Queue()
-    self.__trade = None
-    self.__tradeTask = None
-    self.__temp = []
+  def _restart(self):
+    self._state = session.State.START
+    self._buffer = Queue()
+    self._trade = None
+    self._tradeTask = None
+    self._temp = []
 
   async def listen(self, buffer):
-    self.__fb = foxbit.Foxbit()
+    self._fb = foxbit.Foxbit()
 
-    self.__callbackBuffer = buffer
+    self._callbackBuffer = buffer
     DELAY_FOR_WAIT_MESSAGES_IN_SECONDS = 0.1
 
     while True:
-      buffer_sz = self.__buffer.size()
+      buffer_sz = self._buffer.size()
 
       for i in range(buffer_sz):
-        message = self.__buffer.front()
-        self.__buffer.pop()
-        await self.__handleMsg(message)
+        message = self._buffer.front()
+        self._buffer.pop()
+        await self._handleMsg(message)
       
       await asyncio.sleep(DELAY_FOR_WAIT_MESSAGES_IN_SECONDS)
 
-  async def __handleMsg(self, message):
+  async def _handleMsg(self, message):
     if message["from"] == "telegram":
-      await self.__handleTelegramMessages(message["data"])
+      await self._handleTelegramMessages(message["data"])
     elif message["from"] == "manager":
-      await self.__handleManagerMessages(message["data"])
+      await self._handleManagerMessages(message["data"])
 
-  async def __handleTelegramMessages(self, message):
+  async def _handleTelegramMessages(self, message):
     if 'text' not in message.keys():
       return None
 
     msg = message['text']
-    if self.__isCriticalState():
-      await self.__handleCriticalInformation(msg)
+    if self._isCriticalState():
+      await self._handleCriticalInformation(msg)
     else:
-      await self.__handleSessionCommand(msg)
+      await self._handleSessionCommand(msg)
 
-  def __sendManagerMessage(self, msg):
-    self.__callbackBuffer.push({
+  def _sendManagerMessage(self, msg):
+    self._callbackBuffer.push({
       "from": "session",
       "data": {
-        "id": self.__id,
+        "id": self._id,
         "message": msg
       }
     })
 
-  def __assertLogged(self):
-    if self.__state != session.State.START:
+  def _assertLogged(self):
+    if self._state != session.State.START:
       return True
 
-    self.__sendManagerMessage(session.WARNING_NOT_LOGGED)
+    self._sendManagerMessage(session.WARNING_NOT_LOGGED)
 
-  def __isCriticalState(self):
-    return self.__state in [session.State.WAITING_FOR_EMAIL, 
+  def _isCriticalState(self):
+    return self._state in [session.State.WAITING_FOR_EMAIL, 
                             session.State.WAITING_FOR_PASSWORD,
                             session.State.WAITING_FOR_HISTORY_LIMIT,
                             session.State.WAITING_FOR_VALLEY,
                             session.State.WAITING_FOR_PROFIT]
 
-  async def __handleCriticalInformation(self, msg):
-    if self.__state == session.State.WAITING_FOR_EMAIL:
-      self.__recvEmail(msg)
-    elif self.__state == session.State.WAITING_FOR_PASSWORD:
-      await self.__recvPassword(msg)
-    elif self.__state == session.State.WAITING_FOR_HISTORY_LIMIT:
-      self.__recvHistoryLimit(msg)
-    elif self.__state == session.State.WAITING_FOR_VALLEY:
-      self.__recvValley(msg)
-    elif self.__state == session.State.WAITING_FOR_PROFIT:
-      self.__recvProfit(msg)
+  async def _handleCriticalInformation(self, msg):
+    if self._state == session.State.WAITING_FOR_EMAIL:
+      self._recvEmail(msg)
+    elif self._state == session.State.WAITING_FOR_PASSWORD:
+      await self._recvPassword(msg)
+    elif self._state == session.State.WAITING_FOR_HISTORY_LIMIT:
+      self._recvHistoryLimit(msg)
+    elif self._state == session.State.WAITING_FOR_VALLEY:
+      self._recvValley(msg)
+    elif self._state == session.State.WAITING_FOR_PROFIT:
+      self._recvProfit(msg)
 
-  def __deletePassword(self, response):
+  def _deletePassword(self, response):
     try:
       body = response["body"]
       body = json.loads(body)
@@ -115,117 +116,117 @@ class UserSession(object):
       return None
 
   # log erros and set break state
-  def __isResponseOk(self, response, password=False):
+  def _isResponseOk(self, response, password=False):
     if response["status"] == "Failed":
-      self.__restart()
+      self._restart()
       if password:
-        self.__deletePassword(response)
+        self._deletePassword(response)
 
-      self.__sendManagerMessage(session.log_error(**response))
+      self._sendManagerMessage(session.log_error(**response))
       return False
     else:
       return True
 
   # handle for askeds requests
-  def __recvEmail(self, email):
-    self.__username = email
-    self.__state = session.State.WAITING_FOR_PASSWORD
-    self.__sendManagerMessage(session.ASK_PASSWORD)
+  def _recvEmail(self, email):
+    self._username = email
+    self._state = session.State.WAITING_FOR_PASSWORD
+    self._sendManagerMessage(session.ASK_PASSWORD)
 
-  async def __recvPassword(self, password):
-    response = await self.__fb.authenticate(self.__username, password)
-    if not self.__isResponseOk(response, password=True):
+  async def _recvPassword(self, password):
+    response = await self._fb.authenticate(self._username, password)
+    if not self._isResponseOk(response, password=True):
       return None
 
     if response["o"]["Authenticated"] == False:
-      self.__state = session.State.START
-      self.__sendManagerMessage(session.INVALID_EMAIL_OR_PASSWORD)
+      self._state = session.State.START
+      self._sendManagerMessage(session.INVALID_EMAIL_OR_PASSWORD)
     else:
-      self.__state = session.State.LOGGED
-      self.__sendManagerMessage(session.LOGGED)
+      self._state = session.State.LOGGED
+      self._sendManagerMessage(session.LOGGED)
 
-  def __recvHistoryLimit(self, limit):
+  def _recvHistoryLimit(self, limit):
     if not limit.isdigit():
-      self.__state = session.State.LOGGED
-      self.__sendManagerMessage(session.INVALID_HISTORY_LIMIT)
+      self._state = session.State.LOGGED
+      self._sendManagerMessage(session.INVALID_HISTORY_LIMIT)
     else:
-      self.__temp.append(int(limit))
-      self.__state = session.State.WAITING_FOR_VALLEY
-      self.__sendManagerMessage(session.ASK_VALLEY)
+      self._temp.append(int(limit))
+      self._state = session.State.WAITING_FOR_VALLEY
+      self._sendManagerMessage(session.ASK_VALLEY)
 
-  def __recvValley(self, valley):
+  def _recvValley(self, valley):
     if re.fullmatch('0\.\d+', valley) == None:
-      self.__state = session.State.LOGGED
-      self.__sendManagerMessage(session.INVALID_VALLEY)
+      self._state = session.State.LOGGED
+      self._sendManagerMessage(session.INVALID_VALLEY)
     else:
       f_valley = float(valley)
-      self.__temp.append(f_valley)
-      self.__state = session.State.WAITING_FOR_PROFIT
-      self.__sendManagerMessage(session.ASK_PROFIT)
+      self._temp.append(f_valley)
+      self._state = session.State.WAITING_FOR_PROFIT
+      self._sendManagerMessage(session.ASK_PROFIT)
 
-  def __recvProfit(self, profit):
+  def _recvProfit(self, profit):
     if re.fullmatch('0\.\d+', profit) == None:
-      self.__state = session.State.LOGGED
-      self.__sendManagerMessage(session.INVALID_PROFIT)
+      self._state = session.State.LOGGED
+      self._sendManagerMessage(session.INVALID_PROFIT)
     else:
       f_profit = float(profit)
-      self.__createTrade(self.__temp[0], self.__temp[1], f_profit)
-      self.__clearTemp()
-      self.__state = session.State.TRADE_CREATED
-      self.__sendManagerMessage(session.TRADE_CREATED)
+      self._createTrade(self._temp[0], self._temp[1], f_profit)
+      self._clearTemp()
+      self._state = session.State.TRADE_CREATED
+      self._sendManagerMessage(session.TRADE_CREATED)
 
   # handle for commands
-  async def __handleSessionCommand(self, msg):
+  async def _handleSessionCommand(self, msg):
     if msg == "/start":
-      self.__sendManagerMessage(session.START)
+      self._sendManagerMessage(session.START)
     elif msg == "/login":
-      self.__login()
+      self._login()
     elif msg == "/trade_start":
-      await self.__startTrade()
+      await self._startTrade()
 
-  def __login(self):
-    if self.__state != session.State.START:
-      self.__sendManagerMessage(session.WARNING_ALREADY_LOGGED)
+  def _login(self):
+    if self._state != session.State.START:
+      self._sendManagerMessage(session.WARNING_ALREADY_LOGGED)
       return None
 
-    self.__state = session.State.WAITING_FOR_EMAIL
-    self.__sendManagerMessage(session.ASK_EMAIL)
+    self._state = session.State.WAITING_FOR_EMAIL
+    self._sendManagerMessage(session.ASK_EMAIL)
 
-  async def __startTrade(self):
-    success = await self.__authenticate()
+  async def _startTrade(self):
+    success = await self._authenticate()
 
     if not success:
       return None
 
-    response = await self.__getCurrencyValue()
+    response = await self._getCurrencyValue()
     price = response["Ask"]
-    self.__sendManagerMessage(session.current_price(price))
+    self._sendManagerMessage(session.current_price(price))
 
     order_id = db.insert("orders", ["ask", "bid"], [response["Ask"], response["Bid"]])[0][0]
 
-    accountId = await self.__getAccountId()
-    clientOrderId = await self.__getClientOrderId(accountId)
+    accountId = await self._getAccountId()
+    clientOrderId = await self._getClientOrderId(accountId)
 
-    response = await self.__fb.buy(accountId, clientOrderId)
-    if not self.__isResponseOk(response):
+    response = await self._fb.buy(accountId, clientOrderId)
+    if not self._isResponseOk(response):
       return None
 
     if response["o"]["status"] == "Accepted":
-      self.__sendManagerMessage(session.currency_buyed(price))
+      self._sendManagerMessage(session.currency_buyed(price))
     else:
-      self.__sendManagerMessage(session.log_error(description="Erro ao comprar moeda",
-                                                          path="user_session.__tradeLife",
+      self._sendManagerMessage(session.log_error(description="Erro ao comprar moeda",
+                                                          path="user_session._tradeLife",
                                                           body=json.dumps(response)))
       return None
 
-    user_id = db.find_equal("users", "chat_id", str(self.__id), ["id"])[0][0]
+    user_id = db.find_equal("users", "chat_id", str(self._id), ["id"])[0][0]
     db.insert("trades", ["user_id", "order_bought_id"], [user_id, order_id])
 
-  def __createTrade(self, limit, valley, profit):
-    self.__trade = foxbit.Trade(limit, valley, profit)
-    self.__tradeTask = asyncio.create_task(self.__tradeLife())
+  def _createTrade(self, limit, valley, profit):
+    self._trade = foxbit.Trade(limit, valley, profit)
+    self._tradeTask = asyncio.create_task(self._tradeLife())
 
-  async def __tradeLife(self):
+  async def _tradeLife(self):
     DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS = 600
     buyed = False
 
@@ -233,39 +234,39 @@ class UserSession(object):
 
     # waiting for buy
     while not buyed:
-      response = await self.__getCurrencyValue()
+      response = await self._getCurrencyValue()
       price = response["Ask"]
-      if self.__trade.addPrice(price):
+      if self._trade.addPrice(price):
         buyedFor = price
-        self.__trade.lockPrice(price)
+        self._trade.lockPrice(price)
         buyed = True
-        self.__sendManagerMessage(session.current_price(price))
+        self._sendManagerMessage(session.current_price(price))
       else:
-        self.__sendManagerMessage(session.current_price(price))
+        self._sendManagerMessage(session.current_price(price))
       await asyncio.sleep(DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS)
 
-    response = await self.__fb.getAccountId()
-    if not self.__isResponseOk(response):
+    response = await self._fb.getAccountId()
+    if not self._isResponseOk(response):
       return None
     
     accountId = response["data"]
 
-    response = await self.__fb.getClientOrderId(accountId)
-    if not self.__isResponseOk(response):
+    response = await self._fb.getClientOrderId(accountId)
+    if not self._isResponseOk(response):
       return None
 
     clientOrderId = response["data"]
 
-    response = await self.__fb.buy(accountId, clientOrderId)
-    if not self.__isResponseOk(response):
+    response = await self._fb.buy(accountId, clientOrderId)
+    if not self._isResponseOk(response):
       return None
 
     if response["o"]["status"] == "Accepted":
-      self.__sendManagerMessage(session.currency_buyed(buyedFor))
+      self._sendManagerMessage(session.currency_buyed(buyedFor))
     else:
-      self.__restart()
-      self.__sendManagerMessage(session.log_error(description="Erro ao comprar moeda",
-                                                          path="user_session.__tradeLife",
+      self._restart()
+      self._sendManagerMessage(session.log_error(description="Erro ao comprar moeda",
+                                                          path="user_session._tradeLife",
                                                           body=json.dumps(response)))
       return None
 
@@ -273,96 +274,96 @@ class UserSession(object):
     soldFor = None
     # waiting for sell
     while not sold:
-      response = await self.__getCurrencyValue()
+      response = await self._getCurrencyValue()
       price = response["Bid"]
-      if self.__trade.checkProfit(price):
+      if self._trade.checkProfit(price):
         sold = True
         soldFor = price
-        self.__sendManagerMessage(session.current_price(price))
+        self._sendManagerMessage(session.current_price(price))
       else:
-        self.__sendManagerMessage(session.current_price(price))
+        self._sendManagerMessage(session.current_price(price))
       await asyncio.sleep(DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS)
 
-    response = await self.__fb.sell(accountId, clientOrderId)
-    if not self.__isResponseOk(response):
+    response = await self._fb.sell(accountId, clientOrderId)
+    if not self._isResponseOk(response):
       return None
 
     if response["o"]["status"] == "Accepted":
-      self.__sendManagerMessage(session.currency_sold(buyedFor, soldFor))
+      self._sendManagerMessage(session.currency_sold(buyedFor, soldFor))
     else:
-      self.__restart()
-      self.__sendManagerMessage(session.log_error(description="Erro ao vender moeda",
-                                                          path="user_session.__tradeLife",
+      self._restart()
+      self._sendManagerMessage(session.log_error(description="Erro ao vender moeda",
+                                                          path="user_session._tradeLife",
                                                           body=json.dumps(response)))
   
-  async def __getCurrencyValue(self):
-    response = await self.__fb.getTickerHistory()
-    if not self.__isResponseOk(response):
+  async def _getCurrencyValue(self):
+    response = await self._fb.getTickerHistory()
+    if not self._isResponseOk(response):
       return None
 
     return response["o"]
 
   # handle manager commands and operations
-  async def __handleManagerMessages(self, request):
+  async def _handleManagerMessages(self, request):
     if request["operation"] == "sell_trade":
-      await self.__sellTrade(request["trade_id"], request["order_id"])
+      await self._sellTrade(request["trade_id"], request["order_id"])
   
   # sell a currency and close trade
-  async def __sellTrade(self, trade_id, order_id):
-    await self.__authenticate()
+  async def _sellTrade(self, trade_id, order_id):
+    await self._authenticate()
 
-    accountId = await self.__getAccountId()
-    clientOrderId = await self.__getClientOrderId(accountId)
+    accountId = await self._getAccountId()
+    clientOrderId = await self._getClientOrderId(accountId)
 
     order_bought_id = db.find_equal("trades", "id", trade_id, ["order_bought_id"])[0][0]
     bought = db.find_equal("orders", "id", order_bought_id, ["ask"])[0][0]
     sold = db.find_equal("orders", "id", order_id, ["bid"])[0][0]
 
-    response = await self.__fb.sell(accountId, clientOrderId)
-    if not self.__isResponseOk(response):
+    response = await self._fb.sell(accountId, clientOrderId)
+    if not self._isResponseOk(response):
       return None
 
     if response["o"]["status"] == "Accepted":
-      self.__sendManagerMessage(session.currency_sold(bought, sold))
+      self._sendManagerMessage(session.currency_sold(bought, sold))
     else:
-      self.__sendManagerMessage(session.log_error(description="Erro ao vender moeda",
-                                                  path="user_session.__tradeLife",
+      self._sendManagerMessage(session.log_error(description="Erro ao vender moeda",
+                                                  path="user_session._tradeLife",
                                                   body=json.dumps(response),
                                                   status=response["o"]["status"]))
       return None
 
     db.update("trades", trade_id, ["order_sold_id"], [order_id])
 
-  async def __getAccountId(self):
-    response = await self.__fb.getAccountId()
-    if not self.__isResponseOk(response):
+  async def _getAccountId(self):
+    response = await self._fb.getAccountId()
+    if not self._isResponseOk(response):
       return None
     
     return response["data"]
 
-  async def __getClientOrderId(self, accountId):
-    response = await self.__fb.getClientOrderId(accountId)
-    if not self.__isResponseOk(response):
+  async def _getClientOrderId(self, accountId):
+    response = await self._fb.getClientOrderId(accountId)
+    if not self._isResponseOk(response):
       return None
 
     return response["data"]
 
-  async def __authenticate(self):
-    user_credentials = db.find_equal("users", "chat_id", str(self.__id), ["email", "encrypted_password"])
+  async def _authenticate(self):
+    user_credentials = db.find_equal("users", "chat_id", str(self._id), ["email", "encrypted_password"])
 
     if len(user_credentials) == 0:
-      self.__sendManagerMessage(session.accountNotFound())
+      self._sendManagerMessage(session.accountNotFound())
       return False
 
     email = user_credentials[0][0]
     password = user_credentials[0][1]
 
-    response = await self.__fb.authenticate(email, password)
-    if not self.__isResponseOk(response, password=True):
+    response = await self._fb.authenticate(email, password)
+    if not self._isResponseOk(response, password=True):
       return False
 
     if response["o"]["Authenticated"] == False:
-      self.__sendManagerMessage(session.INVALID_EMAIL_OR_PASSWORD)
+      self._sendManagerMessage(session.INVALID_EMAIL_OR_PASSWORD)
       return False
     
     return True
