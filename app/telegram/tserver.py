@@ -1,7 +1,7 @@
 import telepot
 import asyncio
 import os
-from algorithms import Queue
+from app.algorithms import Queue
 
 class TServer(object):
   def __init__(self):

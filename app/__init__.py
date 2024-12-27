@@ -1,7 +1,7 @@
-import algorithms
-import foxbit
-import session
-import telegram
+from . import algorithms
+from . import foxbit
+from . import session
+from . import telegram
 from .render import render
 from .db_config import db_config
 
