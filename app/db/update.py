@@ -1,18 +1,13 @@
 from . import handshake
 
-def execute(sql_update):
-    conn = handshake.connect()
-    cursor = conn.cursor()
-    
+def execute(cursor, sql_update): 
     try:
         cursor.execute(sql_update)
     except Exception as e:
         print("Error when executing this query:", sql_update, "Exception:", e)
         return None
-    
-    handshake.disconnect(conn)
 
-def update(table, id, columns, values):
+def update(cursor, table, id, columns, values):
     sql_update = "UPDATE " + str(table) + " SET"
     
     data_size = len(columns)
@@ -26,4 +21,4 @@ def update(table, id, columns, values):
     
     sql_update = sql_update + " WHERE id = " + str(id)
 
-    execute(sql_update)
+    execute(cursor, sql_update)

@@ -1,9 +1,24 @@
-START = "Olá, seja-bem vindo ao BitBot\n\nEste bot realiza trades automáticos utilizando a" \
+START = "Olá, seja-bem vindo ao Saturn\n\nEste bot realiza trades automáticos utilizando a" \
         + " API do Foxbit. Para mais informações digite os seguintes comandos:\n" \
         + "/list para listar todos os comandos deste bot\n" \
         + "/help para mais informações sobre como o bot funciona\n" \
         + "/about para mais informações sobre o nosso repositório"
 
+ACCOUNT_ALREADY_EXISTS = "Sua conta já existe.\nPara checar o status da sua conta, digite /profile"
+
+ACCOUNT_CREATED = "Sua conta foi criada com sucesso. Para mais informações sobre o status da sua conta " \
+                + "utilize o comando /profile"
+
+def profile(username, active):
+  msg = f"Username: {username}\n"
+  if active:
+    msg += "Status da conta: Ativa"
+  else:
+    msg += "Status da conta: Aguardando aprovação. Contate o suporte."
+
+  return msg
+
+# DEPRECATED
 ASK_EMAIL = "Por favor, digite seu e-mail"
 
 ASK_PASSWORD = "Por favor, digite sua senha (não esqueça de apagar a mensagem contendo a senha logo" \

@@ -6,7 +6,11 @@ from .setup import setup
 def convertEachToStr(unsafe_list):
     safety = []
     for data in unsafe_list:
-        safety.append(str(data))
+        if isinstance(data, str):
+            v = "'{value}'".format(value=data)
+        else:
+            v = "{value}".format(value=data)
+        safety.append(v)
 
     return safety
 
