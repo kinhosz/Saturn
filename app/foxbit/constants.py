@@ -13,3 +13,8 @@ class OrderType(Enum):
 class OrderSide(Enum):
     BUY = 'BUY'
     SELL = 'SELL'
+
+class DepositStage(Enum):
+    CONFIRMED = 'CONFIRMED'
+    PENDING = 'PENDING'
+    CANCELLED = 'CANCELLED'

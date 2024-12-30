@@ -9,6 +9,22 @@ ACCOUNT_ALREADY_EXISTS = "Sua conta já existe.\nPara checar o status da sua con
 ACCOUNT_CREATED = "Sua conta foi criada com sucesso. Para mais informações sobre o status da sua conta " \
                 + "utilize o comando /profile"
 
+UNAUTHORIZED = "Você não tem autorização para realizar esta operação ainda.\n" \
+             + "Aguarde ativação da sua conta com /profile"
+
+DEPOSIT_START = "Digite o valor depositado em BRL com um (.) separando as casas decimais.\n" \
+              + "Lembre-se que este depósito precisará ser validado pelo sistema."
+
+INVALID_DEPOSIT_AMOUNT = "O valor digitado não é valido. Tente novamente"
+
+DEPOSIT_CREATED = "O Depósito foi criado e está aguardando aprovação."
+
+def error(message):
+  msg = "Um erro ocorreu na sua operação. Contate o suporte!\n\n" \
+      + f"{message}"
+  
+  return msg
+
 def profile(username, active):
   msg = f"Username: {username}\n"
   if active:
