@@ -1,3 +1,5 @@
+from datetime import datetime
+
 START = "Olá, seja-bem vindo ao Saturn\n\nEste bot realiza trades automáticos utilizando a" \
         + " API do Foxbit. Para mais informações digite os seguintes comandos:\n" \
         + "/list para listar todos os comandos deste bot\n" \
@@ -18,6 +20,16 @@ DEPOSIT_START = "Digite o valor depositado em BRL com um (.) separando as casas 
 INVALID_DEPOSIT_AMOUNT = "O valor digitado não é valido. Tente novamente"
 
 DEPOSIT_CREATED = "O Depósito foi criado e está aguardando aprovação."
+
+ACCOUNT_NOT_FOUND = "Sua conta não existe.\nCrie uma digitando /register"
+
+def error_template(error, func_name):
+  msg = "Um erro ocorreu durante sua requisição. Por favor, contate o suporte.\n\n" \
+      + f"METHOD\n {func_name}\n\n" \
+      + f"DATETIME\n {datetime.now()}\n\n" \
+      + f"BODY\n{error}"
+
+  return msg
 
 def error(message):
   msg = "Um erro ocorreu na sua operação. Contate o suporte!\n\n" \

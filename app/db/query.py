@@ -1,10 +1,13 @@
 from . import handshake
 
-def execute(cursor, sql_query):
+def execute(cursor, sql_query, fetch=True):
     try:
         cursor.execute(sql_query)
     except Exception as e:
         print("Error when executing this query:", sql_query, "Exception:", e)
+        return None
+
+    if not fetch:
         return None
     
     response = cursor.fetchall()
@@ -30,6 +33,6 @@ def less_than(cursor, table, column, less_than, view = ['*']):
 
     return execute(cursor, sql_query)
 
-def manual(cursor, sql_query):
-    return execute(cursor, sql_query)
+def manual(cursor, sql_query, fetch=True):
+    return execute(cursor, sql_query, fetch)
 

@@ -30,7 +30,6 @@ def connect():
 
     conn = None
     try:
-        print("Connecting to PostgreSQL...")
         conn = psy.connect(
             host = db['host'],
             database = db['database'],
@@ -44,7 +43,6 @@ def connect():
         cursor.execute("SELECT version()")
 
         db_version = cursor.fetchone()
-        print("PostgreSQL database version:", db_version)
 
         cursor.close()
     except Exception as e:

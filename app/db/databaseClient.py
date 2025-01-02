@@ -20,8 +20,8 @@ class DatabaseClient(object):
     def less_than(self, table, column, value, view = ['*']):
         return less_than(self._cursor, table, column, value, view)
 
-    def manual(self, sql_query):
-        return manual(self._cursor, sql_query)
+    def manual(self, sql_query, fetch=True):
+        return manual(self._cursor, sql_query, fetch)
 
     def update(self, table, id, columns, values):
         return update(self._cursor, table, id, columns, values)
