@@ -9,6 +9,7 @@ async def render():
   fServer = FServer()
 
   manager.setServerBuffer(tServer.getBuffer())
+  fServer.setTelegramBuffer(tServer.getBuffer())
 
   tasks = []
 

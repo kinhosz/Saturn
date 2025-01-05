@@ -7,6 +7,7 @@ _RATE_LIMIT = {
   'getMe': [1, 1],
   'getOrder': [30, 2],
   'getTradingFees': [1, 2],
+  'listOrders': [30, 2],
 }
 
 _last_request = {}

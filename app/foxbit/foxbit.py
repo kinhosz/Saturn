@@ -18,7 +18,7 @@ class Foxbit(object):
     params = compact(params)
     query = ''
     for k, v in params.items():
-      query += '?' if query == '' else '&'
+      query += '&' if query != '' else ''
       query += "{}={}".format(k, v)
     return query
 
@@ -53,8 +53,8 @@ class Foxbit(object):
     if auth:
       headers = self._buildHeaders(method, path, query, body)
 
-    url = self._domain + self._resource_prefix + path + query
-    response = requests.request(method.value, url, headers=headers, json=body)
+    url = self._domain + self._resource_prefix + path
+    response = requests.request(method.value, url, headers=headers, params=query, json=body)
     data = None
 
     if response.status_code != 500:
@@ -112,7 +112,7 @@ class Foxbit(object):
     }
     response, code = await self._request(method=RestMethod.POST, path='/orders', body=body)
 
-    return response
+    return response, code
 
   @throttle
   async def getOrder(self, order_id):
@@ -122,8 +122,17 @@ class Foxbit(object):
     str_to_float = ['price', 'price_avg', 'quantity', 'quantity_executed', 'funds_received', 'fee_paid']
     for k in str_to_float:
       response[k] = float(response[k]) if response.get(k, False) else None
-
     response['created_at'] = datetime.fromisoformat(response['created_at'].replace("Z", "+00:00"))
     response['id'] = int(response['id'])
 
     return response
+
+  @throttle
+  async def listOrders(self, start_time=None, end_time=None, page_size=None, page=None, market_symbol=None, side=None, state=None):
+    path = '/orders'
+    response, code = await self._request(
+      method=RestMethod.GET, path=path, start_time=start_time, end_time=end_time, page_size=page_size,
+      page=page, market_symbol=market_symbol, side=side, state=state
+    )
+
+    return response, code

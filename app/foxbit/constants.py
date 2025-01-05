@@ -1,5 +1,7 @@
 from enum import Enum
 
+MINIMUM_BTC_TRADING = 0.00000132
+
 class RestMethod(Enum):
     GET = 'GET'
     POST = 'POST'
