@@ -125,7 +125,7 @@ class Foxbit(object):
     response['created_at'] = datetime.fromisoformat(response['created_at'].replace("Z", "+00:00"))
     response['id'] = int(response['id'])
 
-    return response
+    return response, code
 
   @throttle
   async def listOrders(self, start_time=None, end_time=None, page_size=None, page=None, market_symbol=None, side=None, state=None):
