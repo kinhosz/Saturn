@@ -4,6 +4,7 @@ def find_buyable_balances(btc_price, minimum_btc_trading):
   client = DatabaseClient()
 
   minimum_brl_value = minimum_btc_trading * btc_price
+  REDUCE_FACTOR = 2.0
 
   sql_query = f"""
 SELECT
@@ -17,7 +18,15 @@ JOIN trading_settings                               AS ts
 WHERE b.base_symbol                                 = 'BRL'
   AND b.quote_symbol                                = 'BTC'
   AND ts.lock_buy                                   = FALSE
-  AND b.amount * ts.allocation_percentage           > {minimum_brl_value}
+  AND b.amount * (
+    POWER(
+      ts.allocation_percentage,
+      1.0 + GREATEST(
+        ts.exchange_count,
+        0.0
+      ) / {REDUCE_FACTOR}
+    )                                             
+  )                                                 > {minimum_brl_value}
   AND (
     b.amount / (
       CASE
@@ -26,7 +35,13 @@ WHERE b.base_symbol                                 = 'BRL'
         ELSE {minimum_btc_trading}
       END
     )
-  ) * ts.percentage_to_buy                          > {btc_price}
+  ) * POWER(
+        ts.percentage_to_buy,
+        GREATEST(
+          ts.exchange_count,
+          1.0
+        )
+      )                                           > {btc_price}
   """
 
   res = client.manual(sql_query)

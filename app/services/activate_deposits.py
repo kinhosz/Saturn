@@ -3,12 +3,12 @@ from app.db import DatabaseClient
 def activate_deposits(deposit_ids, btc_price):
     client = DatabaseClient()
 
-    ids_in_str = ", ".join(map(str, deposit_ids))
+    deposit_ids_in_str = ", ".join(map(str, deposit_ids))
 
     sql_query = f"""
         SELECT id, user_id, amount, stage
         FROM deposits
-        WHERE id IN ({ids_in_str});
+        WHERE id IN ({deposit_ids_in_str});
     """
 
     res = client.manual(sql_query)
@@ -34,20 +34,22 @@ def activate_deposits(deposit_ids, btc_price):
 
     print("{} deposits were rejecteds".format(rejected_deposits))
 
-    ids_in_str = ", ".join(map(str, valid_deposits))
+    valid_deposit_ids_in_str = ", ".join(map(str, valid_deposits))
 
     sql_query = f"""
         UPDATE deposits
         SET stage = 'CONFIRMED'
-        WHERE id IN ({ids_in_str});
+        WHERE id IN ({valid_deposit_ids_in_str});
     """
 
     client.manual(sql_query, False)
 
     sql_query = f"""
-        SELECT id, user_id, amount, price
-        FROM balances
-        WHERE user_id IN ({ids_in_str})
+        SELECT b.id, b.user_id, b.amount, b.price
+        FROM balances AS b
+        JOIN deposits AS d
+        ON d.user_id = b.user_id
+        WHERE d.id IN ({valid_deposit_ids_in_str})
         AND base_symbol = 'BRL';
     """
 

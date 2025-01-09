@@ -8,17 +8,27 @@ class TServer(object):
     self._tbot = telepot.Bot(os.getenv('telegram_token'))
     self._buffer = Queue()
 
+  async def getUpdates(self, offset=None):
+    while 1:
+      try:
+        response = self._tbot.getUpdates(offset)
+        break
+      except Exception as e:
+        print(f"An error occured when getting telegram response\nError: {e}")
+        await asyncio.sleep(60)
+    return response
+
   async def listenTelegram(self, buffer):
     DELAY_FOR_RECEIVE_MESSAGES_IN_SECONDS = 0.5
 
     current_id = 0
-    response = self._tbot.getUpdates()
+    response = await self.getUpdates()
 
     if len(response) > 0:
       current_id = response[-1]['update_id'] + 1
 
     while True:
-      response = self._tbot.getUpdates(offset = current_id)
+      response = await self.getUpdates(offset = current_id)
       for m in response:
         current_id = m['update_id'] + 1
         response = {

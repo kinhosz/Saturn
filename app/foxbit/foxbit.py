@@ -104,7 +104,7 @@ class Foxbit(object):
       'type': OrderType.LIMIT.value,
       'market_symbol': market_symbol,
       'client_order_id': client_order_id,
-      'remark': "Order Created by Saturn. Don't modify this order.",
+      'remark': "Order Created by Saturn.",
       'quantity': "{:.16f}".format(quantity),
       'price': "{:.16f}".format(price),
       'post_only': post_only,
@@ -118,6 +118,8 @@ class Foxbit(object):
   async def getOrder(self, order_id):
     path = "/orders/by-order-id/{id}".format(id=order_id)
     response, code = await self._request(method=RestMethod.GET, path=path)
+    if code != 200:
+      return response, code
 
     str_to_float = ['price', 'price_avg', 'quantity', 'quantity_executed', 'funds_received', 'fee_paid']
     for k in str_to_float:

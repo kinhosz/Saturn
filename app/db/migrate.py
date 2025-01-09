@@ -1,5 +1,6 @@
 from datetime import datetime
 from pathlib import Path
+from orm import Model
 from . import handshake
 
 MIGRATIONS_PATH = 'app/db/migrations'
@@ -69,8 +70,8 @@ def pendingMigrations(cursor):
 
 def main():
     conn = handshake.connect()
+    Model.set_connection(conn)
     pendingMigrations(conn.cursor())
-    handshake.disconnect(conn)
 
 if __name__ == "__main__":
     main()

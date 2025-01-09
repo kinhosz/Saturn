@@ -2,7 +2,11 @@ import asyncio
 
 from app.algorithms import Queue
 from app import db, session
-from app.foxbit.constants import DepositStage
+from app.foxbit import Foxbit
+from app.foxbit.constants import DepositStage, MINIMUM_BTC_TRADING
+from app.models import Balance, TradingSetting, User
+
+from typing import List
 
 class UserSession(object):
   def __init__(self, chat_id):
@@ -55,14 +59,14 @@ class UserSession(object):
   @_catch_error
   async def _handleMsg(self, message):
     if message["from"] == "telegram":
-      self._handleTelegramMessages(message["data"])
+      await self._handleTelegramMessages(message["data"])
 
   @_catch_error
-  def _handleTelegramMessages(self, message):
+  async def _handleTelegramMessages(self, message):
     if 'text' not in message.keys():
       return None
 
-    self._handleSessionCommand(message)
+    await self._handleSessionCommand(message)
 
   def _sendManagerMessage(self, msg):
     self._callbackBuffer.push({
@@ -74,11 +78,11 @@ class UserSession(object):
     })
 
   @_catch_error
-  def _handleSessionCommand(self, msg):
+  async def _handleSessionCommand(self, msg):
     if self._isCriticalState():
       self._handleCriticalState(msg)
     else:
-      self._handleNormalCommand(msg)
+      await self._handleNormalCommand(msg)
 
   @_catch_error
   def _isCriticalState(self):
@@ -90,7 +94,7 @@ class UserSession(object):
       self._handleDepositAmount(msg)
 
   @_catch_error
-  def _handleNormalCommand(self, msg):
+  async def _handleNormalCommand(self, msg):
     text = msg['text']
 
     if text == '/start':
@@ -101,10 +105,21 @@ class UserSession(object):
       self._getProfile()
     elif text == '/deposit':
       self._startDepositProcess()
+    elif text == '/trading_info':
+      await self._getTradingInfo()
 
   """ Session Operations """
   def _auth(func):
-    def wrapper(cls, *args, **kwargs):
+    async def async_wrapper(cls, *args, **kwargs):
+      if not cls._authenticated:
+        cls._fetch()
+
+      if cls._authenticated:
+        await func(cls, *args, **kwargs)
+      else:
+        cls._sendManagerMessage(session.UNAUTHORIZED)
+
+    def sync_wrapper(cls, *args, **kwargs):
       if not cls._authenticated:
         cls._fetch()
 
@@ -112,7 +127,10 @@ class UserSession(object):
         func(cls, *args, **kwargs)
       else:
         cls._sendManagerMessage(session.UNAUTHORIZED)
-    return wrapper
+
+    if asyncio.iscoroutinefunction(func):
+      return async_wrapper
+    return sync_wrapper
 
   @_catch_error
   def _fetch(self):
@@ -173,3 +191,42 @@ class UserSession(object):
 
     self._sendManagerMessage(session.DEPOSIT_CREATED)
     self._state = session.State.IDLE
+
+  @_catch_error
+  @_auth
+  async def _getTradingInfo(self):
+    user = User.find_by('telegram_chat_id', self._chat_id)
+    trading = TradingSetting.find_by('user_id', user.id)
+    balances: List[Balance] = Balance.where(user_id=[user.id])
+    balance_in_brl = None
+    balance_in_btc = None
+    
+    for b in balances:
+      if b.base_symbol == 'BRL':
+        balance_in_brl = b
+      elif b.base_symbol == 'BTC':
+        balance_in_btc = b       
+
+    foxbit = Foxbit()
+    res = await foxbit.getCandlesticks(market_symbol='btcbrl', interval='1m', limit=1)
+    btc_price = round(float(res[0]['close_price']), 2)
+    btc_balance = round(balance_in_btc.amount, 8)
+    brl_balance = round(balance_in_brl.amount, 2)
+    btc_cost = round(balance_in_btc.price, 2)
+    brl_cost = round(balance_in_brl.price, 8)
+    brl_desired_balance = round(brl_balance + btc_cost * trading.percentage_to_sell, 2)
+    brl_current_balance = round(brl_balance + btc_balance * btc_price, 2)
+    if btc_balance < MINIMUM_BTC_TRADING:
+      price_to_buy = 'Saldo insuficiente'
+    else:
+      price_to_buy = round((brl_balance / brl_cost) * (trading.percentage_to_buy ** max(trading.exchange_count, 1.0)), 2)
+    
+    if brl_cost < MINIMUM_BTC_TRADING:
+      price_to_sell = 'Saldo insuficiente'
+    else:
+      price_to_sell = round((btc_cost / btc_balance) * (trading.percentage_to_sell ** abs(min(trading.exchange_count, -1.0))), 2)
+
+    self._sendManagerMessage(session.trading_info(
+      btc_price, price_to_sell, price_to_buy, btc_balance, btc_cost,
+      brl_balance, brl_cost, brl_current_balance, brl_desired_balance
+    )) 
