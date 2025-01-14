@@ -1,5 +1,6 @@
 from app.services import activate_users, activate_deposits
 from app.db_config import db_config
+from app.set_env import set_env
 from dotenv import load_dotenv
 
 def run_activate_users():
@@ -29,6 +30,7 @@ def main():
         run_activate_deposits()
 
 if __name__ == "__main__":
+    set_env()
     load_dotenv()
     db_config()
     main()

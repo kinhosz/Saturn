@@ -82,6 +82,8 @@ class Model:
     def find_by(cls, k, v):
         sql = _select_by(cls._table, k, v)
         res = cls._single_fetch(sql)
+        if not res:
+            return None
 
         return cls(res[0])
 

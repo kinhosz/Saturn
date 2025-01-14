@@ -1,6 +1,6 @@
 import asyncio
 from dotenv import load_dotenv
-from app import render, db_config
+from app import render, db_config, set_env
 
 def main():
   load_dotenv()
@@ -10,4 +10,5 @@ def main():
   asyncio.run(render())  
 
 if __name__ == "__main__":
+  set_env()
   main()

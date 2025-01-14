@@ -3,8 +3,6 @@ import asyncio
 from app.algorithms import Queue
 from app import telegram
 from app import session
-from app import foxbit
-from app import db
 
 class Manager(object):
   def __init__(self):
@@ -45,8 +43,6 @@ class Manager(object):
       await self._dispatch(response["data"])
     elif response["from"] == "session":
       self._sendToServer(response["data"]["id"], response["data"]["message"])
-    elif response["from"] == "foxbit":
-      self._foxbitService(response["data"])
 
   async def _dispatch(self, message):
     if 'message' in message.keys():
@@ -82,22 +78,3 @@ class Manager(object):
       "buffer": buffer,
       "task": task
     }
-
-  def _foxbitService(self, request):
-    if request["operation"] == "sell_trade":
-      self._foxbitSellTrade(request["order_id"], request["trade_id"])
-
-  def _foxbitSellTrade(self, order_id, trade_id):
-    user_id = db.find_equal("trades", "id", trade_id, ["user_id"])[0][0]
-    chat_id = db.find_equal("users", "id", user_id, ["chat_id"])[0][0]
-
-    request = {
-      "from": "manager",
-      "data": {
-        "operation": "sell_trade",
-        "order_id": order_id,
-        "trade_id": trade_id
-      }
-    }
-
-    self._requestToSession(chat_id, request)

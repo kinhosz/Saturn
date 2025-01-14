@@ -2,6 +2,7 @@ import psycopg2 as psy
 import re
 import os
 from .setup import setup
+from app.constant import env_name
 
 def convertEachToStr(unsafe_list):
     safety = []
@@ -15,12 +16,17 @@ def convertEachToStr(unsafe_list):
     return safety
 
 def getCredentials():
+    if env_name() == 'production':
+        database_url = os.getenv('DATABASE_URL')
+    else:
+        database_url = os.getenv('DATABASE_URL_DEV')
+        
     cred = {
-        'user': re.search('(?<=postgres://)\w+', os.getenv('DATABASE_URL')).group(0),
-        'password': re.search('postgres://\w+:(\w+)', os.getenv('DATABASE_URL')).group(1),
-        'host': re.search('postgres://\w+:\w+@([^:]*)', os.getenv('DATABASE_URL')).group(1),
-        'port': re.search('postgres://\w+:\w+@[^:]*:(\w+)', os.getenv('DATABASE_URL')).group(1),
-        'database': re.search('postgres://\w+:\w+@[^:]*:\w+/(\w+)', os.getenv('DATABASE_URL')).group(1)
+        'user': re.search('(?<=postgres://)\w+', database_url).group(0),
+        'password': re.search('postgres://\w+:(\w+)', database_url).group(1),
+        'host': re.search('postgres://\w+:\w+@([^:]*)', database_url).group(1),
+        'port': re.search('postgres://\w+:\w+@[^:]*:(\w+)', database_url).group(1),
+        'database': re.search('postgres://\w+:\w+@[^:]*:\w+/(\w+)', database_url).group(1)
     }
     return cred
 

@@ -1,5 +1,3 @@
-from . import handshake
-
 def execute(cursor, sql_update): 
     try:
         cursor.execute(sql_update)

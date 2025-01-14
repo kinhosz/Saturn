@@ -8,11 +8,22 @@ from datetime import datetime, timezone
 from .constants import *
 from .throttle import throttle
 from .utils import *
+from app.constant import env_name
 
 class Foxbit(object):
   def __init__(self):
     self._domain = 'https://api.foxbit.com.br'
     self._resource_prefix = '/rest/v3'
+
+  def _getApiSecret(self):
+    if env_name() == 'production':
+      return os.getenv('FOXBIT_API_SECRET')
+    return os.getenv('FOXBIT_API_SECRET_DEV')
+
+  def _getApiKey(self):
+    if env_name() == 'production':
+      return os.getenv('FOXBIT_API_KEY')
+    return os.getenv('FOXBIT_API_KEY_DEV')
 
   def _buildQuery(self, **params):
     params = compact(params)
@@ -23,7 +34,7 @@ class Foxbit(object):
     return query
 
   def _buildHeaders(self, method, path, queryString, body):
-    api_secret = os.getenv('FOXBIT_API_SECRET')
+    api_secret = self._getApiSecret()
 
     timestamp = str(int(time.time() * 1000))
     raw_body = ''
@@ -34,7 +45,7 @@ class Foxbit(object):
     signature = hmac.new(api_secret.encode(), preHash.encode(), hashlib.sha256).hexdigest()
 
     headers = {
-      'X-FB-ACCESS-KEY': os.getenv('FOXBIT_API_KEY'),
+      'X-FB-ACCESS-KEY': self._getApiKey(),
       'X-FB-ACCESS-TIMESTAMP': timestamp,
       'X-FB-ACCESS-SIGNATURE': signature,
     }

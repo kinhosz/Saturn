@@ -1,10 +1,10 @@
 import asyncio
 
 from app.algorithms import Queue
-from app import db, session
+from app import session
 from app.foxbit import Foxbit
 from app.foxbit.constants import DepositStage, MINIMUM_BTC_TRADING
-from app.models import Balance, TradingSetting, User
+from app.models import Balance, Deposit, TradingSetting, User
 
 from typing import List
 
@@ -16,7 +16,6 @@ class UserSession(object):
     self._authenticated = False
 
     self._buffer = Queue()
-    self._db_client = db.DatabaseClient()
     self._state = session.State.IDLE
     self._callbackBuffer = None
 
@@ -134,34 +133,36 @@ class UserSession(object):
 
   @_catch_error
   def _fetch(self):
-    res = self._db_client.find_equal(
-      'users', 'telegram_chat_id', self._chat_id,
-      ['id', 'active']
-    )
+    user = User.find_by('telegram_chat_id', self._chat_id)
 
-    if len(res) > 0:
-      self._id = res[0][0]
-      self._authenticated = res[0][1]
+    if user:
+      self._id = user.id
+      self._authenticated = user.active
 
   @_catch_error
   def _registerUser(self, msg):
     self._username = msg['from']['username'] if 'username' in msg['from'] else msg['from']['first_name']
-    
-    res = self._db_client.find_equal('users', 'telegram_chat_id', self._chat_id, ['id'])
-    if len(res) != 0:
+
+    user = User.find_by('telegram_chat_id', self._chat_id)
+    if user:
       self._sendManagerMessage(session.ACCOUNT_ALREADY_EXISTS)
       return None
 
-    self._db_client.insert('users', ['telegram_chat_id', 'telegram_username', 'active'], [self._chat_id, self._username, False])
+    user = User()
+    user.telegram_chat_id = self._chat_id
+    user.telegram_username = self._username
+    user.active = False
+    user.save()
+
     self._sendManagerMessage(session.ACCOUNT_CREATED)
 
   @_catch_error
   def _getProfile(self):
-    res = self._db_client.find_equal('users', 'telegram_chat_id', self._chat_id, ['telegram_username', 'active'])
-    if len(res) == 0:
+    user = User.find_by('telegram_chat_id', self._chat_id)
+    if not user:
       self._sendManagerMessage(session.message.ACCOUNT_NOT_FOUND)
     else:
-      self._sendManagerMessage(session.profile(res[0][0], res[0][1]))
+      self._sendManagerMessage(session.profile(user.telegram_username, user.active))
 
   @_catch_error
   @_auth
@@ -184,7 +185,11 @@ class UserSession(object):
   @_catch_error
   def _createDeposit(self, amount):
     try:
-      self._db_client.insert('deposits', ['user_id', 'amount', 'stage'], [self._id, amount, DepositStage.PENDING.value])
+      deposit = Deposit()
+      deposit.user_id = self._id
+      deposit.amount = amount
+      deposit.stage = DepositStage.PENDING.value
+      deposit.save()
     except Exception as e:
       self._sendManagerMessage(session.error(str(e)))
       return None

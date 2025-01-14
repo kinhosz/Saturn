@@ -6,4 +6,4 @@ class Deposit(Model):
     id = Fields.id()
     user_id = Fields.reference()
     amount = Fields.double()
-    state = Fields.varchar()
+    stage = Fields.varchar()

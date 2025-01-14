@@ -2,11 +2,17 @@ import telepot
 import asyncio
 import os
 from app.algorithms import Queue
+from app.constant import env_name
 
 class TServer(object):
   def __init__(self):
-    self._tbot = telepot.Bot(os.getenv('telegram_token'))
+    self._tbot = None
     self._buffer = Queue()
+
+    if env_name() == 'production':
+      self._tbot = telepot.Bot(os.getenv('TELEGRAM_TOKEN'))
+    else:
+      self._tbot = telepot.Bot(os.getenv('TELEGRAM_TOKEN_DEV'))
 
   async def getUpdates(self, offset=None):
     while 1:

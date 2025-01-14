@@ -1,5 +1,3 @@
-from . import handshake
-
 def execute(cursor, sql_query, fetch=True):
     try:
         cursor.execute(sql_query)
