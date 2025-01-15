@@ -215,6 +215,8 @@ class UserSession(object):
     foxbit = Foxbit()
     res = await foxbit.getCandlesticks(market_symbol='btcbrl', interval='1m', limit=1)
     btc_price = round(float(res[0]['close_price']), 2)
+    btc_high = round(float(res[0]['highest_price']), 2)
+    btc_low = round(float(res[0]['lowest_price']), 2)
     btc_balance = round(balance_in_btc.amount, 8)
     brl_balance = round(balance_in_brl.amount, 2)
     btc_cost = round(balance_in_btc.price, 2)
@@ -232,6 +234,6 @@ class UserSession(object):
       price_to_sell = round((btc_cost / btc_balance) * (trading.percentage_to_sell ** abs(min(trading.exchange_count, -1.0))), 2)
 
     self._sendManagerMessage(session.trading_info(
-      btc_price, price_to_sell, price_to_buy, btc_balance, btc_cost,
+      btc_price, btc_high, btc_low, price_to_sell, price_to_buy, btc_balance, btc_cost,
       brl_balance, brl_cost, brl_current_balance, brl_desired_balance
     )) 

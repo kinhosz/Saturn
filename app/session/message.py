@@ -47,13 +47,17 @@ def profile(username, active):
   return msg
 
 def trading_info(
-  btc_price, price_to_sell, price_to_buy, btc_balance,
+  btc_price, btc_high, btc_low,
+  price_to_sell, price_to_buy, btc_balance,
   btc_cost, brl_balance, brl_cost, brl_current_balance,
   brl_desired_balance
 ):
   msg = "Trading\n\n"
   msg += "----------------\n"
   msg += f"Preço do Bitcoin:\n{btc_price} BRL\n\n"
+  msg += f"Máxima:\n{btc_high} BRL\n\n"
+  msg += f"Mínima:\n{btc_low} BRL\n\n"
+  msg += "----------------\n"
   msg += f"Preço para venda:\n{price_to_sell} BRL\n\n"
   msg += f"Preço para compra:\n{price_to_buy} BRL\n\n"
   msg += "----------------\n"
