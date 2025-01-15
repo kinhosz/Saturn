@@ -14,6 +14,7 @@ class UserSession(object):
     self._chat_id = chat_id
     self._username = None
     self._authenticated = False
+    self._foxbit = Foxbit()
 
     self._buffer = Queue()
     self._state = session.State.IDLE
@@ -106,6 +107,8 @@ class UserSession(object):
       self._startDepositProcess()
     elif text == '/trading_info':
       await self._getTradingInfo()
+    elif text == '/trading_rebase':
+      await self._tradingRebase()
 
   """ Session Operations """
   def _auth(func):
@@ -212,8 +215,7 @@ class UserSession(object):
       elif b.base_symbol == 'BTC':
         balance_in_btc = b       
 
-    foxbit = Foxbit()
-    res = await foxbit.getCandlesticks(market_symbol='btcbrl', interval='1m', limit=1)
+    res = await self._foxbit.getCandlesticks(market_symbol='btcbrl', interval='1m', limit=1)
     btc_price = round(float(res[0]['close_price']), 2)
     btc_high = round(float(res[0]['highest_price']), 2)
     btc_low = round(float(res[0]['lowest_price']), 2)
@@ -223,12 +225,12 @@ class UserSession(object):
     brl_cost = round(balance_in_brl.price, 8)
     brl_desired_balance = round(brl_balance + btc_cost * trading.percentage_to_sell, 2)
     brl_current_balance = round(brl_balance + btc_balance * btc_price, 2)
-    if btc_balance < MINIMUM_BTC_TRADING:
+    if brl_cost < MINIMUM_BTC_TRADING:
       price_to_buy = 'Saldo insuficiente'
     else:
       price_to_buy = round((brl_balance / brl_cost) * (trading.percentage_to_buy ** max(trading.exchange_count, 1.0)), 2)
     
-    if brl_cost < MINIMUM_BTC_TRADING:
+    if btc_balance < MINIMUM_BTC_TRADING:
       price_to_sell = 'Saldo insuficiente'
     else:
       price_to_sell = round((btc_cost / btc_balance) * (trading.percentage_to_sell ** abs(min(trading.exchange_count, -1.0))), 2)
@@ -237,3 +239,34 @@ class UserSession(object):
       btc_price, btc_high, btc_low, price_to_sell, price_to_buy, btc_balance, btc_cost,
       brl_balance, brl_cost, brl_current_balance, brl_desired_balance
     )) 
+
+  @_catch_error
+  async def _getRepresentativeBTCPrice(self):
+    candles = await self._foxbit.getCandlesticks(market_symbol='btcbrl', interval='30m', limit=500)
+    if len(candles) != 500:
+      raise Exception("Candles size is different than expected!")
+
+    sum_by_volume = 0.0
+    all_volume = 0.0
+    for candle in candles:
+      sum_by_volume += ((candle['highest_price'] + candle['lowest_price']) / 2.0) * candle['base_volume']
+      all_volume += candle['base_volume']
+    
+    if all_volume < 1e-8:
+      raise Exception("Total volume can't be 0")
+
+    return sum_by_volume / all_volume
+
+  @_catch_error
+  @_auth
+  async def _tradingRebase(self):
+    representative_price = await self._getRepresentativeBTCPrice()
+
+    balances: List[Balance] = Balance.where(user_id=[self._id], base_symbol=['BRL'])
+    balance = balances[0]
+
+    btc_amount = balance.amount / representative_price
+    balance.price = btc_amount
+    balance.save()
+
+    self._sendManagerMessage(session.BALANCE_REBASED)

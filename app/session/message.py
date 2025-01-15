@@ -23,6 +23,8 @@ DEPOSIT_CREATED = "O Depósito foi criado e está aguardando aprovação."
 
 ACCOUNT_NOT_FOUND = "Sua conta não existe.\nCrie uma digitando /register"
 
+BALANCE_REBASED = "Seu saldo em BRL foi reposicionado!\n"
+
 def error_template(error, func_name):
   msg = "Um erro ocorreu durante sua requisição. Por favor, contate o suporte.\n\n" \
       + f"METHOD\n {func_name}\n\n" \
