@@ -3,12 +3,13 @@ from app.db import DatabaseClient
 def find_sellable_balances(btc_price, minimum_btc_trading):
   client = DatabaseClient()
 
-  REDUCE_FACTOR = 2.0
-
   sql_query = f"""
 SELECT
     b.id                                            AS balance_id,
-    b.amount * ts.allocation_percentage             AS partial_amount,
+    GREATEST(
+      b.amount * ts.allocation_percentage,
+      {minimum_btc_trading}
+    )                                               AS partial_amount,
     b.price * ts.allocation_percentage              AS partial_price,
     b.user_id                                       AS user_id
 FROM balances                                       AS b
@@ -17,17 +18,7 @@ JOIN trading_settings                               AS ts
 WHERE b.base_symbol                                 = 'BTC'
   AND b.quote_symbol                                = 'BRL'
   AND ts.lock_sell                                  = FALSE
-  AND b.amount * (
-    POWER(
-      ts.allocation_percentage,
-      1.0 + (
-        LEAST(
-          ts.exchange_count,
-          0.0
-        ) * (-1.0)
-      ) / {REDUCE_FACTOR}
-    )                                             
-  )                                                 > {minimum_btc_trading}
+  AND b.amount                                      > {minimum_btc_trading}
   AND (
     b.price / (
       CASE
