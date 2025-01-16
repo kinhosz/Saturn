@@ -9,4 +9,4 @@ from .render import render
 from .db_config import db_config
 from .scripts import *
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
