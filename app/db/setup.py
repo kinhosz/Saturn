@@ -68,20 +68,22 @@ INSERT INTO schema_migrations DEFAULT VALUES;
     """
     cursor.execute(command)
     cursor.close()
+    conn.close()
 
 def setup(credentials):
-    conn = psy.connect(
-        host = credentials['host'],
-        database = DEFAULT_DATABASE,
-        user = credentials['user'],
-        password = credentials['password'],
-        port = credentials['port']
-    )
-    conn.autocommit = True
-    cursor = conn.cursor()
+    if env_name() != 'production':
+        conn = psy.connect(
+            host = credentials['host'],
+            database = DEFAULT_DATABASE,
+            user = credentials['user'],
+            password = credentials['password'],
+            port = credentials['port']
+        )
+        conn.autocommit = True
+        cursor = conn.cursor()
 
-    if not db_exist(cursor, credentials['database']):
-        create(cursor, credentials['database'])
+        if not db_exist(cursor, credentials['database']):
+            create(cursor, credentials['database'])
+        cursor.close()
 
-    cursor.close()
     configurate(credentials)
