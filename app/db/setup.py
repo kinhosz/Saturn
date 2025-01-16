@@ -1,8 +1,12 @@
 import psycopg2 as psy
+from app.constant import env_name
 
 DEFAULT_DATABASE = 'postgres'
 
 def db_exist(cursor, database):
+    if env_name == 'production':
+        return True
+
     command = "SELECT datname FROM pg_database WHERE datname = '{database}';".format(database=database)
     cursor.execute(command)
     res = cursor.fetchone()
