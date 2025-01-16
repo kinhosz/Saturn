@@ -1,353 +1,151 @@
-import foxbit
+import hashlib, hmac
 import json
-import asyncio
-import websockets
-from datetime import datetime, timedelta
+import os
+import requests
+import time
+import uuid
+from datetime import datetime, timezone
+from .constants import *
+from .throttle import throttle
+from .utils import *
+from ..constant import env_name
 
 class Foxbit(object):
   def __init__(self):
-    self.__lastRequestTime = None
-    # TODO: improve store credentials
-    self.__username = None
-    self.__password = None
+    self._domain = 'https://api.foxbit.com.br'
+    self._resource_prefix = '/rest/v3'
 
-  def __createErrorResponse(self, description, path, body):
-    response = {
-      "status": "Failed",
-      "description": description,
-      "path": path,
-      "body": body
+  def _getApiSecret(self):
+    if env_name() == 'production':
+      return os.getenv('FOXBIT_API_SECRET')
+    return os.getenv('FOXBIT_API_SECRET_DEV')
+
+  def _getApiKey(self):
+    if env_name() == 'production':
+      return os.getenv('FOXBIT_API_KEY')
+    return os.getenv('FOXBIT_API_KEY_DEV')
+
+  def _buildQuery(self, **params):
+    params = compact(params)
+    query = ''
+    for k, v in params.items():
+      query += '&' if query != '' else ''
+      query += "{}={}".format(k, v)
+    return query
+
+  def _buildHeaders(self, method, path, queryString, body):
+    api_secret = self._getApiSecret()
+
+    timestamp = str(int(time.time() * 1000))
+    raw_body = ''
+    if body:
+      raw_body = json.dumps(compact(body))
+
+    preHash = f"{timestamp}{method.value.upper()}{self._resource_prefix}{path}{queryString}{raw_body}"
+    signature = hmac.new(api_secret.encode(), preHash.encode(), hashlib.sha256).hexdigest()
+
+    headers = {
+      'X-FB-ACCESS-KEY': self._getApiKey(),
+      'X-FB-ACCESS-TIMESTAMP': timestamp,
+      'X-FB-ACCESS-SIGNATURE': signature,
     }
 
-    return response
+    if method == RestMethod.POST:
+      headers['X-Idempotent'] = str(uuid.uuid4()).lower()
 
-  def __basicRequest(self, endpoint=""):
-    response = {
-      "m": 0, # MessageType ( 0_Request / 1_Reply / 2_Subscribe / 3_Event / 4_Unsubscribe / Error )
-      "i": 0, # Sequence Number
-      "n": endpoint, # Endpoint
-      "o": "" # Payload
-    }
+    return headers
 
-    return response
+  async def _request(self, method, path, auth=True, body=None, **params):
+    if body:
+      body = compact(body)
 
-  async def __wait(self):
-    if self.__lastRequestTime == None:
-      self.__lastRequestTime = datetime.now()
-    else:
-      seconds = foxbit.DELAY_FOR_REQUESTS_IN_SECONDS - (datetime.now() - self.__lastRequestTime).seconds
-      await asyncio.sleep(seconds)
-      self.__lastRequestTime = datetime.now()
+    query = self._buildQuery(**params)
+    headers = None
+    if auth:
+      headers = self._buildHeaders(method, path, query, body)
 
-  def __buildRequest(self, endpoint, **kwargs):
-    request = self.__basicRequest(endpoint)
+    url = self._domain + self._resource_prefix + path
+    response = requests.request(method.value, url, headers=headers, params=query, json=body)
+    data = None
 
-    if endpoint == "WebAuthenticateUser":
-      request["o"] = self.__payloadForAuthenticate(**kwargs)
-    
-    elif endpoint == "GetInstrument":
-      request["o"] = self.__payloadForGetInstrument()
-    
-    elif endpoint == "GetProducts":
-      request["o"] = self.__payloadForGetProducts()
-
-    elif endpoint == "GetTickerHistory":
-      request["o"] = self.__payloadForGetTickerHistory()
-
-    elif endpoint == "GetUserInfo":
-      request["o"] = self.__payloadForGetUserInfo()
-
-    elif endpoint == "GetOpenOrders":
-      request["o"] = self.__payloadForGetOpenOrders(**kwargs)
-
-    elif endpoint == "GetOrderHistory":
-      request["o"] = self.__payloadForGetOrderHistory(**kwargs)
-
-    elif endpoint == "GetAccountTrades":
-      request["o"] = self.__payloadForGetAccountTrades(**kwargs)
-
-    elif endpoint == "SendOrder":
-      request["o"] = self.__payloadForSendOrder(**kwargs)
-
-    return json.dumps(request)
-
-  async def __websocketSend(self, request, websocket):
-    response = {
-      "status": "Success"
-    }
-
-    await self.__wait()
-
-    try:
-      await websocket.send(request)
-    except Exception as e:
-      description = "An error occur during send request to websocket.\nCode error: " + str(e)
-      response = self.__createErrorResponse(description=description,
-                                            path="foxbit.__sendRequest",
-                                            body=request)
-    return response
-
-  async def __websocketRecv(self, websocket):
-    response = {}
-    default_response = ""
-
-    try:
-      str_response = await websocket.recv()
-    except Exception as e:
-      response = self.__createErrorResponse(description="An error occur during receive response from websocket.\nError Code: " + str(e),
-                                            path="foxbit.__sendRequest",
-                                            body=default_response)
-      return response
-
-    try:
-      response = json.loads(str_response)
-      response["o"] = json.loads(response["o"])
-      response["status"] = "Success"
-    except:
-      response = self.__createErrorResponse(description="An error occur during manipulate response from websocket",
-                                            path="foxbit.__sendRequest",
-                                            body=str_response)
-    return response
-
-  async def __sendRequest(self, request, authentication=False):
-    response = {}
-
-    async with websockets.connect(foxbit.URI, ping_interval=None) as websocket:
-      if authentication:
-        auth_request = self.__buildRequest(endpoint = "WebAuthenticateUser",
-                                           username = self.__username,
-                                           password = self.__password)
-        response = await self.__websocketSend(auth_request, websocket)
-        if response["status"] == "Failed":
-          return response
-        
-        response = await self.__websocketRecv(websocket)
-        if response["status"] == "Failed":
-          return response
-
-      response = await self.__websocketSend(request, websocket)
-      if response["status"] == "Failed":
-        return response
-
-      response = await self.__websocketRecv(websocket)
-      if response["status"] == "Failed":
-        return response
-
-    return response
-
-  # payloads
-
-  def __payloadForAuthenticate(self, username, password):
-    payload = {
-      "UserName": username,
-      "Password": password
-    }
-    
-    return json.dumps(payload)
-
-  def __payloadForGetInstrument(self):
-    payload = {
-      "OMSId": 1,
-      "InstrumentId": 1
-    }
-
-    return json.dumps(payload)
-
-  def __payloadForGetProducts(self):
-    payload = {
-      "OMSId": 1
-    }
-
-    return json.dumps(payload)
-
-  '''-----------------------------------------------------------
-    The foxbit API documentation is leak, so, NOT USE a seconds in
-    datetime within this request different to zero.
-  ------------------------------------------------------------'''
-  def __payloadForGetTickerHistory(self):
-    current = datetime.now()
-    current = current - timedelta(seconds=current.second)
-
-    payload = {
-      "InstrumentId": 1,
-      "Interval": 60,
-      "FromDate": (current - timedelta(minutes=1)).strftime('%Y-%m-%dT%H:%M:%S'),
-      "ToDate": current.strftime('%Y-%m-%dT%H:%M:%S')
-    }
-
-    return json.dumps(payload)
-
-  def __payloadForGetUserInfo(self):
-    payload = {}
-
-    return json.dumps(payload)
-
-  def __payloadForGetOpenOrders(self, accountId):
-    payload = {
-      "AccountId": accountId,
-      "OMSId": 1
-    }
-
-    return json.dumps(payload)
-
-  def __payloadForGetOrderHistory(self, accountId):
-    payload = {
-      "AccountId": accountId,
-      "OMSId": 1
-    }
-
-    return json.dumps(payload)
+    if response.status_code != 500:
+      data = response.json()
   
-  def __payloadForGetAccountTrades(self, accountId):
-    payload = {
-      "AccountId": accountId,
-      "OMSId": 1,
-      "StartIndex": 0,
-      "Count": 1
+    return data, response.status_code
+
+  @throttle
+  async def getCandlesticks(self, market_symbol, interval, start_time=None, end_time=None, limit=None):
+    path = "/markets/{market_symbol}/candlesticks".format(market_symbol=market_symbol)
+    raw_candlesticks, code = await self._request(
+      method=RestMethod.GET, path=path, interval=interval, start_time=start_time, end_time=end_time, limit=limit, auth=False
+    )
+
+    candlesticks = []
+    for candle in raw_candlesticks:
+      candlesticks.append({
+        'open_date_time':  datetime.fromtimestamp(int(candle[0]) / 1000, tz=timezone.utc),
+        'open_price': float(candle[1]),
+        'highest_price': float(candle[2]),
+        'lowest_price': float(candle[3]),
+        'close_price': float(candle[4]),
+        'close_date_time': datetime.fromtimestamp(int(candle[5]) / 1000, tz=timezone.utc),
+        'base_volume': float(candle[6]),
+        'quote_volume': float(candle[7]),
+        'number_of_trades': int(candle[8]),
+        'taker_buy_base_volume': float(candle[9]),
+        'taker_buy_quote_volume': float(candle[10])
+      })
+
+    return candlesticks
+
+  @throttle
+  async def getMe(self):
+    userInfo, code = await self._request(method=RestMethod.GET, path='/me')
+    return userInfo
+
+  @throttle
+  async def getTradingFees(self):
+    fees, code = await self._request(method=RestMethod.GET, path='/me/fees/trading')
+    return fees
+
+  @throttle
+  async def createOrderLimit(self, side, client_order_id, quantity, price, market_symbol='btcbrl', post_only=None, time_in_force=None):
+    body = {
+      'side': str(side),
+      'type': OrderType.LIMIT.value,
+      'market_symbol': market_symbol,
+      'client_order_id': client_order_id,
+      'remark': "Order Created by Saturn.",
+      'quantity': "{:.16f}".format(quantity),
+      'price': "{:.16f}".format(price),
+      'post_only': post_only,
+      'time_in_force': time_in_force,
     }
+    response, code = await self._request(method=RestMethod.POST, path='/orders', body=body)
 
-    return json.dumps(payload)
+    return response, code
 
-  def __payloadForSendOrder(self, accountId, clientOrderId, side):
-    # reference: https://alphapoint.github.io/slate/#sendorder
-    # reference: https://www.flowbtc.com.br/api.html
-    BASE_TEST_FOR_BUY = 0.00005
+  @throttle
+  async def getOrder(self, order_id):
+    path = "/orders/by-order-id/{id}".format(id=order_id)
+    response, code = await self._request(method=RestMethod.GET, path=path)
+    if code != 200:
+      return response, code
 
-    if side == 0:
-      quantity = BASE_TEST_FOR_BUY
-    else:
-      quantity = BASE_TEST_FOR_BUY - BASE_TEST_FOR_BUY * foxbit.TAX_FOR_MARKET_ORDER
+    str_to_float = ['price', 'price_avg', 'quantity', 'quantity_executed', 'funds_received', 'fee_paid']
+    for k in str_to_float:
+      response[k] = float(response[k]) if response.get(k, False) else None
+    response['created_at'] = datetime.fromisoformat(response['created_at'].replace("Z", "+00:00"))
+    response['id'] = int(response['id'])
 
-    payload = {
-      "AccountId": accountId,                              # ok
-      "ClientOrderId": clientOrderId,                      # ok
-      "Quantity": quantity,                                 # ok
-      "DisplayQuantity": 0,                                # ok
-      "OrderIdOCO": 0,                                     # ok (poderia omitir)
-      "OrderType": 1,                                      # ok
-      "InstrumentId": 1,                                   # ok (btc)
-      "Side": side,                                        # ok
-      "TimeInForce": 1,                                    # ok
-      "OMSId": 1                                           # ok
-    }
+    return response, code
 
-    return json.dumps(payload)
+  @throttle
+  async def listOrders(self, start_time=None, end_time=None, page_size=None, page=None, market_symbol=None, side=None, state=None):
+    path = '/orders'
+    response, code = await self._request(
+      method=RestMethod.GET, path=path, start_time=start_time, end_time=end_time, page_size=page_size,
+      page=page, market_symbol=market_symbol, side=side, state=state
+    )
 
-  # endpoints
-
-  async def authenticate(self, username, password):
-    self.__username = username
-    self.__password = password
-    request = self.__buildRequest(endpoint = "WebAuthenticateUser",
-                                  username = username,
-                                  password = password)
-
-    return await self.__sendRequest(request)
-
-  async def getInstrument(self):
-    request = self.__buildRequest(endpoint = "GetInstrument")
-
-    return await self.__sendRequest(request)
-
-  async def getProducts(self):
-    request = self.__buildRequest(endpoint = "GetProducts")
-
-    return await self.__sendRequest(request)
-
-  async def getTickerHistory(self):
-    request = self.__buildRequest(endpoint = "GetTickerHistory")
-    response = await self.__sendRequest(request)
-
-    if response["status"] == "Failed":
-      return response
-
-    try:
-      listPayload = response["o"][-1]
-    except:
-      errorResponse = self.__createErrorResponse(description="The response didnt have the list payload",
-                                                 path="foxbit.getTickerHistory",
-                                                 body=json.dumps(response))
-      return errorResponse
-
-    # an easy way to understand the response
-    responsePayload = {
-      "UTC": listPayload[0],
-      "High": listPayload[1],
-      "Low": listPayload[2],
-      "Open": listPayload[3],
-      "Close": listPayload[4],
-      "Volume": listPayload[5],
-      "Bid": listPayload[6],
-      "Ask": listPayload[7],
-      "InstrumentId": listPayload[8]
-    }
-
-    response["o"] = responsePayload
-
-    return response
-
-  async def getUserInfo(self):
-    request = self.__buildRequest(endpoint = "GetUserInfo")
-    return await self.__sendRequest(request, authentication=True)
-
-  async def getOpenOrders(self, accountId):
-    request = self.__buildRequest(endpoint = "GetOpenOrders",
-                                  accountId = accountId)
-
-    return await self.__sendRequest(request, authentication=True)
-  
-  async def getOrderHistory(self, accountId):
-    request = self.__buildRequest(endpoint = "GetOrderHistory",
-                                  accountId = accountId)
-    
-    return await self.__sendRequest(request, authentication=True)
-
-  async def getAccountTrades(self, accountId):
-    request = self.__buildRequest(endpoint = "GetAccountTrades",
-                                  accountId = accountId)
-
-    return await self.__sendRequest(request, authentication=True)
-
-  async def __sendOrder(self, accountId, clientOrderId, side):
-    request = self.__buildRequest(endpoint = "SendOrder",
-                                  accountId = accountId,
-                                  clientOrderId = clientOrderId,
-                                  side = side)
-
-    return await self.__sendRequest(request, authentication=True)
-
-  async def buy(self, accountId, clientOrderId):
-    return await self.__sendOrder(accountId, clientOrderId, side=0)
-
-  async def sell(self, accountId, clientOrderId):
-    return await self.__sendOrder(accountId, clientOrderId, side=1)
-
-  # utils
-  def __createResponseForUtils(self, data):
-    response = {
-      "status": "Sucess",
-      "data": data
-    }
-
-    return response
-
-  async def getAccountId(self):
-    response = await self.getUserInfo()
-
-    if response["status"] == "Failed":
-      return response
-
-    return self.__createResponseForUtils(response["o"]["AccountId"])
-
-  async def getClientOrderId(self, accountId):
-    response = await self.getOrderHistory(accountId)
-
-    if response["status"] == "Failed":
-      return response
-
-    if len(response["o"]) == 0:
-      return self.__createErrorResponse(description="The client didnt have any Order",
-                                        path="foxbit.getClientOrderId",
-                                        body= json.dumps(response))
-
-    return self.__createResponseForUtils(response["o"][0]["ClientOrderId"])
+    return response, code

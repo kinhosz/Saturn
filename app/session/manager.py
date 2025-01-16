@@ -1,37 +1,36 @@
-from algorithms import Queue
-import telegram
-import session
 import asyncio
-import foxbit
-import db
+
+from app.algorithms import Queue
+from app import telegram
+from app import session
 
 class Manager(object):
   def __init__(self):
-    self.__serverBuffer = None
-    self.__buffer = Queue()
-    self.__activeSessions = {}
+    self._serverBuffer = None
+    self._buffer = Queue()
+    self._activeSessions = {}
 
   async def listen(self):
     DELAY_FOR_WAIT_MESSAGES_IN_SECONDS = 0.1
 
     while True:
-      buffer_sz = self.__buffer.size()
+      buffer_sz = self._buffer.size()
 
       for i in range(buffer_sz):
-        message = self.__buffer.front()
-        self.__buffer.pop()
-        await self.__handleResponse(message)
+        message = self._buffer.front()
+        self._buffer.pop()
+        await self._handleResponse(message)
       
       await asyncio.sleep(DELAY_FOR_WAIT_MESSAGES_IN_SECONDS)
 
   def getBuffer(self):
-    return self.__buffer
+    return self._buffer
 
   def setServerBuffer(self, sb):
-    self.__serverBuffer = sb
+    self._serverBuffer = sb
 
-  def __sendToServer(self, chat_id, message):
-    self.__serverBuffer.push({
+  def _sendToServer(self, chat_id, message):
+    self._serverBuffer.push({
       "from": "manager",
       "data": {
         "id": chat_id,
@@ -39,22 +38,20 @@ class Manager(object):
       }
     })
 
-  async def __handleResponse(self, response):
+  async def _handleResponse(self, response):
     if response["from"] == "telegram":
-      await self.__dispatch(response["data"])
+      await self._dispatch(response["data"])
     elif response["from"] == "session":
-      self.__sendToServer(response["data"]["id"], response["data"]["message"])
-    elif response["from"] == "foxbit":
-      self.__foxbitService(response["data"])
+      self._sendToServer(response["data"]["id"], response["data"]["message"])
 
-  async def __dispatch(self, message):
+  async def _dispatch(self, message):
     if 'message' in message.keys():
       message = message['message']
     else:
       return None
 
     if message['chat']['type'] != 'private':
-      await self.__sender(message['chat']['id'], telegram.ONLY_PRIVATE_CHAT)
+      await self._sender(message['chat']['id'], telegram.ONLY_PRIVATE_CHAT)
       return None
 
     chat_id = message['chat']['id']
@@ -63,40 +60,21 @@ class Manager(object):
       "from": "telegram",
       "data": message
     }
-    self.__requestToSession(chat_id, request)
+    self._requestToSession(chat_id, request)
   
-  def __requestToSession(self, chat_id, request):
-    if chat_id not in self.__activeSessions.keys():
-      self.__createSession(chat_id)
+  def _requestToSession(self, chat_id, request):
+    if chat_id not in self._activeSessions.keys():
+      self._createSession(chat_id)
     
-    self.__activeSessions[chat_id]["buffer"].push(request)
+    self._activeSessions[chat_id]["buffer"].push(request)
 
-  def __createSession(self, chat_id):
+  def _createSession(self, chat_id):
     uSession = session.UserSession(chat_id)
     buffer = uSession.getBuffer()
     task = asyncio.create_task(uSession.listen(self.getBuffer()))
 
-    self.__activeSessions[chat_id] = {
+    self._activeSessions[chat_id] = {
       "session": uSession,
       "buffer": buffer,
       "task": task
     }
-
-  def __foxbitService(self, request):
-    if request["operation"] == "sell_trade":
-      self.__foxbitSellTrade(request["order_id"], request["trade_id"])
-
-  def __foxbitSellTrade(self, order_id, trade_id):
-    user_id = db.find_equal("trades", "id", trade_id, ["user_id"])[0][0]
-    chat_id = db.find_equal("users", "id", user_id, ["chat_id"])[0][0]
-
-    request = {
-      "from": "manager",
-      "data": {
-        "operation": "sell_trade",
-        "order_id": order_id,
-        "trade_id": trade_id
-      }
-    }
-
-    self.__requestToSession(chat_id, request)

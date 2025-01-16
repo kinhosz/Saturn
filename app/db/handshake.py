@@ -1,35 +1,33 @@
 import psycopg2 as psy
 import re
 import os
-
-def convertEachToStr(unsafe_list):
-    safety = []
-    for data in unsafe_list:
-        safety.append(str(data))
-
-    return safety
+from .setup import setup
+from app.constant import env_name
 
 def getCredentials():
+    if env_name() == 'production':
+        database_url = os.getenv('DATABASE_URL')
+    else:
+        database_url = os.getenv('DATABASE_URL_DEV')
+        
     cred = {
-        'user': re.search('(?<=postgres://)\w+', os.getenv('DATABASE_URL')).group(0),
-        'password': re.search('postgres://\w+:(\w+)', os.getenv('DATABASE_URL')).group(1),
-        'host': re.search('postgres://\w+:\w+@([^:]*)', os.getenv('DATABASE_URL')).group(1),
-        'port': re.search('postgres://\w+:\w+@[^:]*:(\w+)', os.getenv('DATABASE_URL')).group(1),
-        'name': re.search('postgres://\w+:\w+@[^:]*:\w+/(\w+)', os.getenv('DATABASE_URL')).group(1)
+        'user': re.search('(?<=postgres://)\w+', database_url).group(0),
+        'password': re.search('postgres://\w+:(\w+)', database_url).group(1),
+        'host': re.search('postgres://\w+:\w+@([^:]*)', database_url).group(1),
+        'port': re.search('postgres://\w+:\w+@[^:]*:(\w+)', database_url).group(1),
+        'database': re.search('postgres://\w+:\w+@[^:]*:\w+/(\w+)', database_url).group(1)
     }
-
     return cred
 
 def connect():
     db = getCredentials()
+    setup(db)
 
     conn = None
-    
     try:
-        print("Connecting to PostgreSQL...")
         conn = psy.connect(
             host = db['host'],
-            database = db['name'],
+            database = db['database'],
             user = db['user'],
             password = db['password'],
             port = db['port']
@@ -40,7 +38,6 @@ def connect():
         cursor.execute("SELECT version()")
 
         db_version = cursor.fetchone()
-        print("PostgreSQL database version:", db_version)
 
         cursor.close()
     except Exception as e:

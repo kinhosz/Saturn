@@ -1,14 +1,15 @@
 import asyncio
-from telegram import TServer
-from session import Manager
-from foxbit import FServer
+from app.telegram import TServer
+from app.session import Manager
+from app.foxbit import FServer
 
 async def render():
   tServer = TServer()
   manager = Manager()
-  fServer = FServer(manager.getBuffer())
+  fServer = FServer()
 
   manager.setServerBuffer(tServer.getBuffer())
+  fServer.setTelegramBuffer(tServer.getBuffer())
 
   tasks = []
 

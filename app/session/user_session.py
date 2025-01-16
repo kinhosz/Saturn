@@ -1,368 +1,272 @@
-from algorithms import Queue
 import asyncio
-import session
-import foxbit
-import re
-import json
-import db
+
+from app.algorithms import Queue
+from app import session
+from app.foxbit import Foxbit
+from app.foxbit.constants import DepositStage, MINIMUM_BTC_TRADING
+from app.models import Balance, Deposit, TradingSetting, User
+
+from typing import List
 
 class UserSession(object):
   def __init__(self, chat_id):
-    self.__id = chat_id
-    self.__buffer = Queue()
-    self.__state = session.State.START
-    self.__callbackBuffer = None
-    self.__fb = None
-    # user login information
-    self.__username = None
-    # trade information
-    self.__trade = None
-    self.__tradeTask = None
-    # temps values
-    self.__temp = []
+    self._id = False
+    self._chat_id = chat_id
+    self._username = None
+    self._authenticated = False
+    self._foxbit = Foxbit()
 
+    self._buffer = Queue()
+    self._state = session.State.IDLE
+    self._callbackBuffer = None
+
+  def _catch_error(func):
+    async def async_wrapper(cls, *args, **kwargs):
+      try:
+        return await func(cls, *args, **kwargs)
+      except Exception as e:
+        cls._sendManagerMessage(session.message.error_template(str(e), func.__name__))
+
+    def sync_wrapper(cls, *args, **kwargs):
+      try:
+        return func(cls, *args, **kwargs)
+      except Exception as e:
+        cls._sendManagerMessage(session.message.error_template(str(e), func.__name__))
+
+    if asyncio.iscoroutinefunction(func):
+      return async_wrapper
+    return sync_wrapper
+
+  @_catch_error
   def getBuffer(self):
-    return self.__buffer
+    return self._buffer
 
-  def __clearTemp(self):
-    self.__temp = []
-
-  def __restart(self):
-    self.__state = session.State.START
-    self.__buffer = Queue()
-    self.__trade = None
-    self.__tradeTask = None
-    self.__temp = []
-
+  @_catch_error
   async def listen(self, buffer):
-    self.__fb = foxbit.Foxbit()
-
-    self.__callbackBuffer = buffer
+    self._callbackBuffer = buffer
     DELAY_FOR_WAIT_MESSAGES_IN_SECONDS = 0.1
 
     while True:
-      buffer_sz = self.__buffer.size()
+      buffer_sz = self._buffer.size()
 
-      for i in range(buffer_sz):
-        message = self.__buffer.front()
-        self.__buffer.pop()
-        await self.__handleMsg(message)
+      for _ in range(buffer_sz):
+        message = self._buffer.front()
+        self._buffer.pop()
+        await self._handleMsg(message)
       
       await asyncio.sleep(DELAY_FOR_WAIT_MESSAGES_IN_SECONDS)
 
-  async def __handleMsg(self, message):
+  @_catch_error
+  async def _handleMsg(self, message):
     if message["from"] == "telegram":
-      await self.__handleTelegramMessages(message["data"])
-    elif message["from"] == "manager":
-      await self.__handleManagerMessages(message["data"])
+      await self._handleTelegramMessages(message["data"])
 
-  async def __handleTelegramMessages(self, message):
+  @_catch_error
+  async def _handleTelegramMessages(self, message):
     if 'text' not in message.keys():
       return None
 
-    msg = message['text']
-    if self.__isCriticalState():
-      await self.__handleCriticalInformation(msg)
-    else:
-      await self.__handleSessionCommand(msg)
+    await self._handleSessionCommand(message)
 
-  def __sendManagerMessage(self, msg):
-    self.__callbackBuffer.push({
+  def _sendManagerMessage(self, msg):
+    self._callbackBuffer.push({
       "from": "session",
       "data": {
-        "id": self.__id,
+        "id": self._chat_id,
         "message": msg
       }
     })
 
-  def __assertLogged(self):
-    if self.__state != session.State.START:
-      return True
+  @_catch_error
+  async def _handleSessionCommand(self, msg):
+    if self._isCriticalState():
+      self._handleCriticalState(msg)
+    else:
+      await self._handleNormalCommand(msg)
 
-    self.__sendManagerMessage(session.WARNING_NOT_LOGGED)
+  @_catch_error
+  def _isCriticalState(self):
+    return self._state != session.State.IDLE
 
-  def __isCriticalState(self):
-    return self.__state in [session.State.WAITING_FOR_EMAIL, 
-                            session.State.WAITING_FOR_PASSWORD,
-                            session.State.WAITING_FOR_HISTORY_LIMIT,
-                            session.State.WAITING_FOR_VALLEY,
-                            session.State.WAITING_FOR_PROFIT]
+  @_catch_error
+  def _handleCriticalState(self, msg):
+    if self._state == session.State.WAITING_FOR_DEPOSIT:
+      self._handleDepositAmount(msg)
 
-  async def __handleCriticalInformation(self, msg):
-    if self.__state == session.State.WAITING_FOR_EMAIL:
-      self.__recvEmail(msg)
-    elif self.__state == session.State.WAITING_FOR_PASSWORD:
-      await self.__recvPassword(msg)
-    elif self.__state == session.State.WAITING_FOR_HISTORY_LIMIT:
-      self.__recvHistoryLimit(msg)
-    elif self.__state == session.State.WAITING_FOR_VALLEY:
-      self.__recvValley(msg)
-    elif self.__state == session.State.WAITING_FOR_PROFIT:
-      self.__recvProfit(msg)
+  @_catch_error
+  async def _handleNormalCommand(self, msg):
+    text = msg['text']
 
-  def __deletePassword(self, response):
+    if text == '/start':
+      self._sendManagerMessage(session.START)
+    elif text == '/register':
+      self._registerUser(msg)
+    elif text == '/profile':
+      self._getProfile()
+    elif text == '/deposit':
+      self._startDepositProcess()
+    elif text == '/trading_info':
+      await self._getTradingInfo()
+    elif text == '/trading_rebase':
+      await self._tradingRebase()
+
+  """ Session Operations """
+  def _auth(func):
+    async def async_wrapper(cls, *args, **kwargs):
+      if not cls._authenticated:
+        cls._fetch()
+
+      if cls._authenticated:
+        await func(cls, *args, **kwargs)
+      else:
+        cls._sendManagerMessage(session.UNAUTHORIZED)
+
+    def sync_wrapper(cls, *args, **kwargs):
+      if not cls._authenticated:
+        cls._fetch()
+
+      if cls._authenticated:
+        func(cls, *args, **kwargs)
+      else:
+        cls._sendManagerMessage(session.UNAUTHORIZED)
+
+    if asyncio.iscoroutinefunction(func):
+      return async_wrapper
+    return sync_wrapper
+
+  @_catch_error
+  def _fetch(self):
+    user = User.find_by('telegram_chat_id', self._chat_id)
+
+    if user:
+      self._id = user.id
+      self._authenticated = user.active
+
+  @_catch_error
+  def _registerUser(self, msg):
+    self._username = msg['from']['username'] if 'username' in msg['from'] else msg['from']['first_name']
+
+    user = User.find_by('telegram_chat_id', self._chat_id)
+    if user:
+      self._sendManagerMessage(session.ACCOUNT_ALREADY_EXISTS)
+      return None
+
+    user = User()
+    user.telegram_chat_id = self._chat_id
+    user.telegram_username = self._username
+    user.active = False
+    user.save()
+
+    self._sendManagerMessage(session.ACCOUNT_CREATED)
+
+  @_catch_error
+  def _getProfile(self):
+    user = User.find_by('telegram_chat_id', self._chat_id)
+    if not user:
+      self._sendManagerMessage(session.message.ACCOUNT_NOT_FOUND)
+    else:
+      self._sendManagerMessage(session.profile(user.telegram_username, user.active))
+
+  @_catch_error
+  @_auth
+  def _startDepositProcess(self):
+    self._sendManagerMessage(session.DEPOSIT_START)
+    self._state = session.State.WAITING_FOR_DEPOSIT
+
+  @_catch_error
+  def _handleDepositAmount(self, msg):
+    txt = msg['text']
+    amount = 0.0
     try:
-      body = response["body"]
-      body = json.loads(body)
-      ro = body["o"]
-      ro = json.loads(ro)
-      ro["Password"] = "secret"
-      ro = json.dumps(ro)
-      body["o"] = ro
-      body = json.dumps(body)
-      response["body"] = body
-    except:
+      amount = float(txt)
+    except Exception as _:
+      self._sendManagerMessage(session.INVALID_DEPOSIT_AMOUNT)
       return None
 
-  # log erros and set break state
-  def __isResponseOk(self, response, password=False):
-    if response["status"] == "Failed":
-      self.__restart()
-      if password:
-        self.__deletePassword(response)
+    self._createDeposit(amount)
 
-      self.__sendManagerMessage(session.log_error(**response))
-      return False
-    else:
-      return True
-
-  # handle for askeds requests
-  def __recvEmail(self, email):
-    self.__username = email
-    self.__state = session.State.WAITING_FOR_PASSWORD
-    self.__sendManagerMessage(session.ASK_PASSWORD)
-
-  async def __recvPassword(self, password):
-    response = await self.__fb.authenticate(self.__username, password)
-    if not self.__isResponseOk(response, password=True):
+  @_catch_error
+  def _createDeposit(self, amount):
+    try:
+      deposit = Deposit()
+      deposit.user_id = self._id
+      deposit.amount = amount
+      deposit.stage = DepositStage.PENDING.value
+      deposit.save()
+    except Exception as e:
+      self._sendManagerMessage(session.error(str(e)))
       return None
 
-    if response["o"]["Authenticated"] == False:
-      self.__state = session.State.START
-      self.__sendManagerMessage(session.INVALID_EMAIL_OR_PASSWORD)
-    else:
-      self.__state = session.State.LOGGED
-      self.__sendManagerMessage(session.LOGGED)
+    self._sendManagerMessage(session.DEPOSIT_CREATED)
+    self._state = session.State.IDLE
 
-  def __recvHistoryLimit(self, limit):
-    if not limit.isdigit():
-      self.__state = session.State.LOGGED
-      self.__sendManagerMessage(session.INVALID_HISTORY_LIMIT)
-    else:
-      self.__temp.append(int(limit))
-      self.__state = session.State.WAITING_FOR_VALLEY
-      self.__sendManagerMessage(session.ASK_VALLEY)
-
-  def __recvValley(self, valley):
-    if re.fullmatch('0\.\d+', valley) == None:
-      self.__state = session.State.LOGGED
-      self.__sendManagerMessage(session.INVALID_VALLEY)
-    else:
-      f_valley = float(valley)
-      self.__temp.append(f_valley)
-      self.__state = session.State.WAITING_FOR_PROFIT
-      self.__sendManagerMessage(session.ASK_PROFIT)
-
-  def __recvProfit(self, profit):
-    if re.fullmatch('0\.\d+', profit) == None:
-      self.__state = session.State.LOGGED
-      self.__sendManagerMessage(session.INVALID_PROFIT)
-    else:
-      f_profit = float(profit)
-      self.__createTrade(self.__temp[0], self.__temp[1], f_profit)
-      self.__clearTemp()
-      self.__state = session.State.TRADE_CREATED
-      self.__sendManagerMessage(session.TRADE_CREATED)
-
-  # handle for commands
-  async def __handleSessionCommand(self, msg):
-    if msg == "/start":
-      self.__sendManagerMessage(session.START)
-    elif msg == "/login":
-      self.__login()
-    elif msg == "/trade_start":
-      await self.__startTrade()
-
-  def __login(self):
-    if self.__state != session.State.START:
-      self.__sendManagerMessage(session.WARNING_ALREADY_LOGGED)
-      return None
-
-    self.__state = session.State.WAITING_FOR_EMAIL
-    self.__sendManagerMessage(session.ASK_EMAIL)
-
-  async def __startTrade(self):
-    success = await self.__authenticate()
-
-    if not success:
-      return None
-
-    response = await self.__getCurrencyValue()
-    price = response["Ask"]
-    self.__sendManagerMessage(session.current_price(price))
-
-    order_id = db.insert("orders", ["ask", "bid"], [response["Ask"], response["Bid"]])[0][0]
-
-    accountId = await self.__getAccountId()
-    clientOrderId = await self.__getClientOrderId(accountId)
-
-    response = await self.__fb.buy(accountId, clientOrderId)
-    if not self.__isResponseOk(response):
-      return None
-
-    if response["o"]["status"] == "Accepted":
-      self.__sendManagerMessage(session.currency_buyed(price))
-    else:
-      self.__sendManagerMessage(session.log_error(description="Erro ao comprar moeda",
-                                                          path="user_session.__tradeLife",
-                                                          body=json.dumps(response)))
-      return None
-
-    user_id = db.find_equal("users", "chat_id", str(self.__id), ["id"])[0][0]
-    db.insert("trades", ["user_id", "order_bought_id"], [user_id, order_id])
-
-  def __createTrade(self, limit, valley, profit):
-    self.__trade = foxbit.Trade(limit, valley, profit)
-    self.__tradeTask = asyncio.create_task(self.__tradeLife())
-
-  async def __tradeLife(self):
-    DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS = 600
-    buyed = False
-
-    buyedFor = None
-
-    # waiting for buy
-    while not buyed:
-      response = await self.__getCurrencyValue()
-      price = response["Ask"]
-      if self.__trade.addPrice(price):
-        buyedFor = price
-        self.__trade.lockPrice(price)
-        buyed = True
-        self.__sendManagerMessage(session.current_price(price))
-      else:
-        self.__sendManagerMessage(session.current_price(price))
-      await asyncio.sleep(DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS)
-
-    response = await self.__fb.getAccountId()
-    if not self.__isResponseOk(response):
-      return None
+  @_catch_error
+  @_auth
+  async def _getTradingInfo(self):
+    user = User.find_by('telegram_chat_id', self._chat_id)
+    trading = TradingSetting.find_by('user_id', user.id)
+    balances: List[Balance] = Balance.where(user_id=[user.id])
+    balance_in_brl = None
+    balance_in_btc = None
     
-    accountId = response["data"]
+    for b in balances:
+      if b.base_symbol == 'BRL':
+        balance_in_brl = b
+      elif b.base_symbol == 'BTC':
+        balance_in_btc = b       
 
-    response = await self.__fb.getClientOrderId(accountId)
-    if not self.__isResponseOk(response):
-      return None
-
-    clientOrderId = response["data"]
-
-    response = await self.__fb.buy(accountId, clientOrderId)
-    if not self.__isResponseOk(response):
-      return None
-
-    if response["o"]["status"] == "Accepted":
-      self.__sendManagerMessage(session.currency_buyed(buyedFor))
+    res = await self._foxbit.getCandlesticks(market_symbol='btcbrl', interval='1m', limit=1)
+    btc_price = round(float(res[0]['close_price']), 2)
+    btc_high = round(float(res[0]['highest_price']), 2)
+    btc_low = round(float(res[0]['lowest_price']), 2)
+    btc_balance = round(balance_in_btc.amount, 8)
+    brl_balance = round(balance_in_brl.amount, 2)
+    btc_cost = round(balance_in_btc.price, 2)
+    brl_cost = round(balance_in_brl.price, 8)
+    brl_desired_balance = round(brl_balance + btc_cost * trading.percentage_to_sell, 2)
+    brl_current_balance = round(brl_balance + btc_balance * btc_price, 2)
+    if brl_cost < MINIMUM_BTC_TRADING:
+      price_to_buy = 'Saldo insuficiente'
     else:
-      self.__restart()
-      self.__sendManagerMessage(session.log_error(description="Erro ao comprar moeda",
-                                                          path="user_session.__tradeLife",
-                                                          body=json.dumps(response)))
-      return None
-
-    sold = False
-    soldFor = None
-    # waiting for sell
-    while not sold:
-      response = await self.__getCurrencyValue()
-      price = response["Bid"]
-      if self.__trade.checkProfit(price):
-        sold = True
-        soldFor = price
-        self.__sendManagerMessage(session.current_price(price))
-      else:
-        self.__sendManagerMessage(session.current_price(price))
-      await asyncio.sleep(DELAY_FOR_GET_CURRENCY_VALUE_IN_SECONDS)
-
-    response = await self.__fb.sell(accountId, clientOrderId)
-    if not self.__isResponseOk(response):
-      return None
-
-    if response["o"]["status"] == "Accepted":
-      self.__sendManagerMessage(session.currency_sold(buyedFor, soldFor))
-    else:
-      self.__restart()
-      self.__sendManagerMessage(session.log_error(description="Erro ao vender moeda",
-                                                          path="user_session.__tradeLife",
-                                                          body=json.dumps(response)))
-  
-  async def __getCurrencyValue(self):
-    response = await self.__fb.getTickerHistory()
-    if not self.__isResponseOk(response):
-      return None
-
-    return response["o"]
-
-  # handle manager commands and operations
-  async def __handleManagerMessages(self, request):
-    if request["operation"] == "sell_trade":
-      await self.__sellTrade(request["trade_id"], request["order_id"])
-  
-  # sell a currency and close trade
-  async def __sellTrade(self, trade_id, order_id):
-    await self.__authenticate()
-
-    accountId = await self.__getAccountId()
-    clientOrderId = await self.__getClientOrderId(accountId)
-
-    order_bought_id = db.find_equal("trades", "id", trade_id, ["order_bought_id"])[0][0]
-    bought = db.find_equal("orders", "id", order_bought_id, ["ask"])[0][0]
-    sold = db.find_equal("orders", "id", order_id, ["bid"])[0][0]
-
-    response = await self.__fb.sell(accountId, clientOrderId)
-    if not self.__isResponseOk(response):
-      return None
-
-    if response["o"]["status"] == "Accepted":
-      self.__sendManagerMessage(session.currency_sold(bought, sold))
-    else:
-      self.__sendManagerMessage(session.log_error(description="Erro ao vender moeda",
-                                                  path="user_session.__tradeLife",
-                                                  body=json.dumps(response),
-                                                  status=response["o"]["status"]))
-      return None
-
-    db.update("trades", trade_id, ["order_sold_id"], [order_id])
-
-  async def __getAccountId(self):
-    response = await self.__fb.getAccountId()
-    if not self.__isResponseOk(response):
-      return None
+      price_to_buy = round((brl_balance / brl_cost) * (trading.percentage_to_buy ** max(trading.exchange_count, 1.0)), 2)
     
-    return response["data"]
+    if btc_balance < MINIMUM_BTC_TRADING:
+      price_to_sell = 'Saldo insuficiente'
+    else:
+      price_to_sell = round((btc_cost / btc_balance) * (trading.percentage_to_sell ** abs(min(trading.exchange_count, -1.0))), 2)
 
-  async def __getClientOrderId(self, accountId):
-    response = await self.__fb.getClientOrderId(accountId)
-    if not self.__isResponseOk(response):
-      return None
+    self._sendManagerMessage(session.trading_info(
+      btc_price, btc_high, btc_low, price_to_sell, price_to_buy, btc_balance, btc_cost,
+      brl_balance, brl_cost, brl_current_balance, brl_desired_balance
+    )) 
 
-    return response["data"]
+  @_catch_error
+  async def _getRepresentativeBTCPrice(self):
+    candles = await self._foxbit.getCandlesticks(market_symbol='btcbrl', interval='5m', limit=500)
+    if len(candles) != 500:
+      raise Exception("Candles size is different than expected!")
 
-  async def __authenticate(self):
-    user_credentials = db.find_equal("users", "chat_id", str(self.__id), ["email", "encrypted_password"])
-
-    if len(user_credentials) == 0:
-      self.__sendManagerMessage(session.accountNotFound())
-      return False
-
-    email = user_credentials[0][0]
-    password = user_credentials[0][1]
-
-    response = await self.__fb.authenticate(email, password)
-    if not self.__isResponseOk(response, password=True):
-      return False
-
-    if response["o"]["Authenticated"] == False:
-      self.__sendManagerMessage(session.INVALID_EMAIL_OR_PASSWORD)
-      return False
+    sum_by_volume = 0.0
+    all_volume = 0.0
+    for candle in candles:
+      sum_by_volume += ((candle['highest_price'] + candle['lowest_price']) / 2.0) * candle['base_volume']
+      all_volume += candle['base_volume']
     
-    return True
+    if all_volume < 1e-8:
+      raise Exception("Total volume can't be 0")
+
+    return sum_by_volume / all_volume
+
+  @_catch_error
+  @_auth
+  async def _tradingRebase(self):
+    representative_price = await self._getRepresentativeBTCPrice()
+
+    balances: List[Balance] = Balance.where(user_id=[self._id], base_symbol=['BRL'])
+    balance = balances[0]
+
+    btc_amount = balance.amount / representative_price
+    balance.price = btc_amount
+    balance.save()
+
+    self._sendManagerMessage(session.BALANCE_REBASED)

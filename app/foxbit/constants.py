@@ -1,3 +1,22 @@
-URI = 'wss://api.foxbit.com.br/'
-DELAY_FOR_REQUESTS_IN_SECONDS = (5*60)/5000 # 5000 requests for 5 minutes
-TAX_FOR_MARKET_ORDER = 0.005
+from enum import Enum
+
+MINIMUM_BTC_TRADING = 0.00000200
+
+class RestMethod(Enum):
+    GET = 'GET'
+    POST = 'POST'
+
+class OrderType(Enum):
+    MARKET = 'MARKET'
+    LIMIT = 'LIMIT'
+    INSTANT = 'INSTANT'
+    STOP = 'STOP_MARKET'
+
+class OrderSide(Enum):
+    BUY = 'BUY'
+    SELL = 'SELL'
+
+class DepositStage(Enum):
+    CONFIRMED = 'CONFIRMED'
+    PENDING = 'PENDING'
+    CANCELLED = 'CANCELLED'
