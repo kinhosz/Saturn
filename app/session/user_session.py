@@ -242,7 +242,7 @@ class UserSession(object):
 
   @_catch_error
   async def _getRepresentativeBTCPrice(self):
-    candles = await self._foxbit.getCandlesticks(market_symbol='btcbrl', interval='30m', limit=500)
+    candles = await self._foxbit.getCandlesticks(market_symbol='btcbrl', interval='5m', limit=500)
     if len(candles) != 500:
       raise Exception("Candles size is different than expected!")
 
