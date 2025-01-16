@@ -48,6 +48,6 @@ jobs:
           git config --global user.email "action@github.com"
       
       - name: Publish
-        run: semantic-release publish -D commit_author="github-actions <action@github.com>"
+        run: semantic-release publish --commit-author="github-actions <action@github.com>"
         env:
           github_token: ${{ secrets.GITHUB_TOKEN }}
