@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from .constants import *
 from .throttle import throttle
 from .utils import *
-from app.constant import env_name
+from ..constant import env_name
 
 class Foxbit(object):
   def __init__(self):
