@@ -1,1 +1,1 @@
-worker: python app/main.py --environment=production
+worker: python -m app.main --environment=production
