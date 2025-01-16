@@ -1,8 +1,6 @@
-from app.db import DatabaseClient
+from orm import Model
 
 def activate_deposits(deposit_ids, btc_price):
-    client = DatabaseClient()
-
     deposit_ids_in_str = ", ".join(map(str, deposit_ids))
 
     sql_query = f"""
@@ -11,7 +9,7 @@ def activate_deposits(deposit_ids, btc_price):
         WHERE id IN ({deposit_ids_in_str});
     """
 
-    res = client.manual(sql_query)
+    res = Model.manual(sql_query)
 
     deposits_by_user = {}
     valid_deposits = []
@@ -42,7 +40,7 @@ def activate_deposits(deposit_ids, btc_price):
         WHERE id IN ({valid_deposit_ids_in_str});
     """
 
-    client.manual(sql_query, False)
+    Model.manual(sql_query, False)
 
     sql_query = f"""
         SELECT b.id, b.user_id, b.amount, b.price
@@ -53,7 +51,7 @@ def activate_deposits(deposit_ids, btc_price):
         AND base_symbol = 'BRL';
     """
 
-    res = client.manual(sql_query)
+    res = Model.manual(sql_query)
 
     balances = []
     for r in res:
@@ -87,6 +85,5 @@ def activate_deposits(deposit_ids, btc_price):
         WHERE id IN ({balance_ids_str});
     """
 
-    client.manual(sql_query, False)
-    client.disconect()
+    Model.manual(sql_query, False)
     print("OK")

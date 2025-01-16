@@ -1,9 +1,7 @@
-from app.db import DatabaseClient
 from app.services.utils import list_to_str
+from orm import Model
 
 def create_balances(user_ids):
-    client = DatabaseClient()
-
     body = []
     for user_id in user_ids:
         body.append(f"({user_id}, 0.0, 'BRL', 0.0, 'BTC')")
@@ -16,7 +14,6 @@ def create_balances(user_ids):
         ON CONFLICT (user_id, base_symbol, quote_symbol) DO NOTHING;
     """
 
-    client.manual(sql_query, False)
-    client.disconect()
+    Model.manual(sql_query, False)
 
     print("Balances Created for users: {}".format(user_ids))

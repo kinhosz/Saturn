@@ -1,8 +1,6 @@
-from app.db import DatabaseClient
+from orm import Model
 
 def find_sellable_balances(btc_price, minimum_btc_trading):
-  client = DatabaseClient()
-
   sql_query = f"""
 SELECT
     b.id                                            AS balance_id,
@@ -36,8 +34,7 @@ WHERE b.base_symbol                                 = 'BTC'
       )                                           < {btc_price}
   """
 
-  res = client.manual(sql_query)
-  client.disconect()
+  res = Model.manual(sql_query)
 
   balances = []
   for r in res:

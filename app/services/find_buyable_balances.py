@@ -1,8 +1,6 @@
-from app.db import DatabaseClient
+from orm import Model
 
 def find_buyable_balances(btc_price, minimum_btc_trading):
-  client = DatabaseClient()
-
   minimum_brl_value = minimum_btc_trading * btc_price
 
   sql_query = f"""
@@ -38,7 +36,7 @@ WHERE b.base_symbol                                 = 'BRL'
       )                                           > {btc_price}
   """
 
-  res = client.manual(sql_query)
+  res = Model.manual(sql_query)
 
   balances = []
   for r in res:
@@ -49,5 +47,4 @@ WHERE b.base_symbol                                 = 'BRL'
       'user_id': r[3]
     })
 
-  client.disconect()
   return balances

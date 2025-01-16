@@ -4,17 +4,6 @@ import os
 from .setup import setup
 from app.constant import env_name
 
-def convertEachToStr(unsafe_list):
-    safety = []
-    for data in unsafe_list:
-        if isinstance(data, str):
-            v = "'{value}'".format(value=data)
-        else:
-            v = "{value}".format(value=data)
-        safety.append(v)
-
-    return safety
-
 def getCredentials():
     if env_name() == 'production':
         database_url = os.getenv('DATABASE_URL')

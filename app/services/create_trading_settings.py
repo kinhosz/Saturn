@@ -1,9 +1,7 @@
-from app.db import DatabaseClient
 from app.services.utils import list_to_str
+from orm import Model
 
 def create_trading_settings(user_ids):
-    client = DatabaseClient()
-
     body = []
     for user_id in user_ids:
         body.append(f"({user_id})")
@@ -17,5 +15,4 @@ def create_trading_settings(user_ids):
 
     print("Trading Settings Created for Users: {}".format(user_ids))
 
-    client.manual(sql_query, False)
-    client.disconect()
+    Model.manual(sql_query, False)

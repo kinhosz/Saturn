@@ -96,3 +96,21 @@ class Model:
         for r in res:
             records.append(cls(r[0]))
         return records
+
+    @classmethod
+    def manual(cls, sql, fetch=True):
+        cursor = cls._connection.cursor()
+
+        try:
+            cursor.execute(sql)
+        except Exception as e:
+            print("Error when executing this query:", sql, "Exception:", e)
+            cursor.close()
+            return None
+
+        if not fetch:
+            return None
+
+        response = cursor.fetchall()
+        cursor.close()
+        return response
