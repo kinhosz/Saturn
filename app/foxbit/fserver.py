@@ -25,10 +25,6 @@ class FServer(object):
             if candlestick:
                 highest_price = candlestick['highest_price']
                 lowest_price = candlestick['lowest_price']
-                for k, v in candlestick.items():
-                    print(f"{k}: {v}")
-                print(f"saturn spread: {highest_price - lowest_price}")
-                print("--------------")
 
                 if candlestick['number_of_trades'] > 5:
                     await self._perform_purchase(highest_price)
@@ -133,9 +129,9 @@ class FServer(object):
 
             trading_setting = TradingSetting.find_by('user_id', order.user_id)
             if side == 'BUY':
-                trading_setting.exchange_count += 1 # Amplifier
+                trading_setting.exchange_count = max(trading_setting.exchange_count + 1, 1)
             else:
-                trading_setting.exchange_count -= 1 # Amplifier
+                trading_setting.exchange_count = min(trading_setting.exchange_count - 1, -1)
             trading_setting.save()
 
             self._telegram_buffer.push({
