@@ -52,7 +52,7 @@ def trading_info(
   btc_price, btc_high, btc_low,
   price_to_sell, price_to_buy, btc_balance,
   btc_cost, brl_balance, brl_cost, brl_current_balance,
-  brl_desired_balance
+  brl_moving
 ):
   msg = "Trading\n\n"
   msg += "----------------\n"
@@ -70,6 +70,6 @@ def trading_info(
   msg += f"Custo atual(BRL):\n{brl_cost} BTC\n\n"
   msg += "----------------\n"
   msg += f"Saldo aproximado(BRL):\n{brl_current_balance} BRL\n\n"
-  msg += f"Saldo esperado(BRL):\n{brl_desired_balance} BRL\n"
+  msg += f"Saldo movimentado(BRL):\n{brl_moving} BRL\n"
 
   return msg
