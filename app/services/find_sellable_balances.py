@@ -25,13 +25,7 @@ WHERE b.base_symbol                                 = 'BTC'
         ELSE {minimum_btc_trading}
       END
     )
-  ) * POWER(
-        ts.percentage_to_sell,
-        LEAST(
-          ts.exchange_count,
-          -1.0
-        ) * (-1.0)
-      )                                           < {btc_price}
+  ) * ts.percentage_to_sell                         < {btc_price}
   """
 
   res = Model.manual(sql_query)
