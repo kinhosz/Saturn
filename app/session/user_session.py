@@ -223,7 +223,7 @@ class UserSession(object):
     brl_balance = round(balance_in_brl.amount, 2)
     btc_cost = round(balance_in_btc.price, 2)
     brl_cost = round(balance_in_brl.price, 8)
-    brl_desired_balance = round(brl_balance + btc_cost * trading.percentage_to_sell, 2)
+    brl_moving = round(brl_balance + btc_cost, 2)
     brl_current_balance = round(brl_balance + btc_balance * btc_price, 2)
     if brl_cost < MINIMUM_BTC_TRADING:
       price_to_buy = 'Saldo insuficiente'
@@ -237,7 +237,7 @@ class UserSession(object):
 
     self._sendManagerMessage(session.trading_info(
       btc_price, btc_high, btc_low, price_to_sell, price_to_buy, btc_balance, btc_cost,
-      brl_balance, brl_cost, brl_current_balance, brl_desired_balance
+      brl_balance, brl_cost, brl_current_balance, brl_moving
     )) 
 
   @_catch_error

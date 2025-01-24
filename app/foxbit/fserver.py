@@ -7,6 +7,7 @@ from app.models import Balance, Order, TradingSetting, User
 from .foxbit import Foxbit
 from .constants import *
 from .messages import *
+from .utils import price_by_volume
 from ..services import *
 
 class FServer(object):
@@ -20,6 +21,8 @@ class FServer(object):
         self._telegram_buffer = buffer
 
     async def listen(self):
+        await self._rebase_price()
+
         while True:
             candlestick = await self._getCurrentPrice('btcbrl')
             if candlestick:
@@ -45,6 +48,16 @@ class FServer(object):
             return None
 
         return candlesticks[0]
+
+    async def _rebase_price(self):
+        balances: List[Balance] = Balance.where(base_symbol=['BRL'])
+        candlesticks = await self._foxbit.getCandlesticks(market_symbol='btcbrl', interval='5m', limit=500)
+
+        avg_price = price_by_volume(candlesticks)
+
+        for balance in balances:
+            balance.price = balance.amount / avg_price
+            balance.save()
 
     async def _createOrderLimit(self, side, quantity, price):
         client_order_id = str(generate_numeric_uuid())
@@ -129,9 +142,9 @@ class FServer(object):
 
             trading_setting = TradingSetting.find_by('user_id', order.user_id)
             if side == 'BUY':
-                trading_setting.exchange_count = max(trading_setting.exchange_count + 1, 1)
+                trading_setting.exchange_count += 1
             else:
-                trading_setting.exchange_count = min(trading_setting.exchange_count - 1, -1)
+                trading_setting.exchange_count = 0
             trading_setting.save()
 
             self._telegram_buffer.push({
