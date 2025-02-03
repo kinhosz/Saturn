@@ -72,6 +72,7 @@ def main():
     conn = handshake.connect()
     Model.set_connection(conn)
     pendingMigrations(conn.cursor())
+    return conn
 
 if __name__ == "__main__":
     main()
