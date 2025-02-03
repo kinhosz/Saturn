@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime, timezone
 from typing import List
 
-from app.models import Balance, Order, TradingSetting, User
+from app.models import Balance, Order, Quota, TradingSetting, User
 
 from .foxbit import Foxbit
 from .constants import *
@@ -160,20 +160,32 @@ class FServer(object):
         await self._handle_executed_orders(executed_orders, 'BUY')
 
     async def _execute_sale_orders(self, price):
-        sellable_balances = find_sellable_balances(price, MINIMUM_BTC_TRADING)
         executed_orders = []
-        for balance in sellable_balances:
-            quantity = balance['partial_amount']
-            res, code = await self._createOrderLimit(OrderSide.SELL.value, quantity, price)
+        quotas: List[Quota] = Quota.where(quota_state=['ACTIVE'])
+
+        for quota in quotas:
+            trading_setting = TradingSetting.find_by('user_id', quota.user_id)
+            price_for_sell = (quota.price * trading_setting.percentage_to_sell)
+
+            if price_for_sell > price:
+                continue
+
+            balances: List[Balance] = Balance.where(user_id=[quota.user_id], base_symbol=['BTC'])
+
+            res, code = await self._createOrderLimit(OrderSide.SELL.value, quota.amount, price_for_sell)
             if code == 201:
+                partial_price = quota.amount * quota.price
+
                 executed_orders.append({
-                    'balance_id': balance['balance_id'],
-                    'user_id': balance['user_id'],
-                    'partial_price': balance['partial_price'],
-                    'partial_amount': balance['partial_amount'],
+                    'balance_id': balances[0].id,
+                    'user_id': quota.user_id,
+                    'partial_amount': quota.amount,
+                    'partial_price': partial_price,
                     'foxbit_order_id': str(res['id']),
                     'client_order_id': str(res['client_order_id'])
                 })
+                quota.quota_state = 'DONE'
+                quota.save()
             else:
                 print("Order Cancelled.\nCode[{}].\nResponse: {}".format(code, res))
 
@@ -213,6 +225,16 @@ class FServer(object):
             brl_amount_cost = order.quantity_executed # taxes included
             btc_amount = order.quantity
             btc_amount_cost = order.quantity * order.price
+
+        if order.side == 'BUY' and order.order_state in ['PARTIALLY_CANCELED', 'FILLED']:
+            price = btc_amount_cost / btc_amount # taxes included
+            quota = Quota()
+            quota.amount = btc_amount
+            quota.price = price
+            quota.user_id = order.user_id
+            quota.created_at = datetime.now()
+            quota.quota_state = 'ACTIVE'
+            quota.save()
 
         balances: List[Balance] = Balance.where(user_id = [order.user_id])
         for balance in balances:
