@@ -51,7 +51,7 @@ class FServer(object):
 
     async def _rebase_price(self):
         balances: List[Balance] = Balance.where(base_symbol=['BRL'])
-        candlesticks = await self._foxbit.getCandlesticks(market_symbol='btcbrl', interval='5m', limit=500)
+        candlesticks = await self._foxbit.getCandlesticks(market_symbol='btcbrl', interval='15m', limit=500)
 
         avg_price = price_by_volume(candlesticks)
 
@@ -229,6 +229,7 @@ class FServer(object):
         if order.side == 'BUY' and order.order_state in ['PARTIALLY_CANCELED', 'FILLED']:
             price = btc_amount_cost / btc_amount # taxes included
             quota = Quota()
+            quota.purchase_order_id = order.id
             quota.amount = btc_amount
             quota.price = price
             quota.user_id = order.user_id

@@ -14,3 +14,6 @@ def db_connection():
     yield conn
 
     conn.close()
+
+# For async tests use:
+# @pytest.mark.asyncio
