@@ -156,3 +156,4 @@ Scripts
 Include
 pyvenv.cfg
 .vscode/
+bin/

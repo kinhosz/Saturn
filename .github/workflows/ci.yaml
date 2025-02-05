@@ -9,20 +9,36 @@ on:
 jobs:
   Quality:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=30s
+          --health-retries=10
+        ports:
+          - 5432:5432
+
     steps:
       - uses: actions/checkout@v2
       - name: Install Python 3
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.10.16
+          python-version: 3.10.12
+      - name: Set up .env file
+        run: |
+          echo "DATABASE_URL_TEST=postgres://postgres:postgres@localhost:5432/saturn_test" >> .env
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Run tests with unittest
-        working-directory: ./app
-        run: python -m unittest discover tests
-    
+      - name: Run Tests
+        run: pytest
+
   release:
     needs: Quality
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, 'chore(release):')

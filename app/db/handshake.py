@@ -16,7 +16,7 @@ def getCredentials():
         'user': re.search('(?<=postgres://)\w+', database_url).group(0),
         'password': re.search('postgres://\w+:(\w+)', database_url).group(1),
         'host': re.search('postgres://\w+:\w+@([^:]*)', database_url).group(1),
-        'port': re.search('postgres://\w+:\w+@[^:]*:(\w+)', database_url).group(1),
+        'port': int(re.search('postgres://\w+:\w+@[^:]*:(\w+)', database_url).group(1)),
         'database': re.search('postgres://\w+:\w+@[^:]*:\w+/(\w+)', database_url).group(1)
     }
     return cred
