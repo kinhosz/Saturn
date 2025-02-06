@@ -7,14 +7,16 @@ from app.constant import env_name
 def getCredentials():
     if env_name() == 'production':
         database_url = os.getenv('DATABASE_URL')
-    else:
+    elif env_name() == 'development':
         database_url = os.getenv('DATABASE_URL_DEV')
+    else:
+        database_url = os.getenv('DATABASE_URL_TEST')
         
     cred = {
         'user': re.search('(?<=postgres://)\w+', database_url).group(0),
         'password': re.search('postgres://\w+:(\w+)', database_url).group(1),
         'host': re.search('postgres://\w+:\w+@([^:]*)', database_url).group(1),
-        'port': re.search('postgres://\w+:\w+@[^:]*:(\w+)', database_url).group(1),
+        'port': int(re.search('postgres://\w+:\w+@[^:]*:(\w+)', database_url).group(1)),
         'database': re.search('postgres://\w+:\w+@[^:]*:\w+/(\w+)', database_url).group(1)
     }
     return cred
@@ -32,7 +34,7 @@ def connect():
             password = db['password'],
             port = db['port']
         )
-        conn.autocommit = True
+        conn.autocommit = env_name() != 'test'
 
         cursor = conn.cursor()
         cursor.execute("SELECT version()")

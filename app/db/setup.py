@@ -39,6 +39,10 @@ def create(cursor, database):
     else:
         raise Exception("{database} database creation has been failed".format(database=database))
 
+def drop(cursor, database):
+    command = f"DROP DATABASE {database};"
+    cursor.execute(command)
+
 def configurate(credentials):
     conn = psy.connect(
         host = credentials['host'],
@@ -81,6 +85,10 @@ def setup(credentials):
         )
         conn.autocommit = True
         cursor = conn.cursor()
+
+        if env_name() == 'test':
+            if db_exist(cursor, credentials['database']):
+                drop(cursor, credentials['database'])
 
         if not db_exist(cursor, credentials['database']):
             create(cursor, credentials['database'])
