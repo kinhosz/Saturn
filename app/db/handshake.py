@@ -13,11 +13,11 @@ def getCredentials():
         database_url = os.getenv('DATABASE_URL_TEST')
         
     cred = {
-        'user': re.search('(?<=postgres://)\w+', database_url).group(0),
-        'password': re.search('postgres://\w+:(\w+)', database_url).group(1),
-        'host': re.search('postgres://\w+:\w+@([^:]*)', database_url).group(1),
-        'port': int(re.search('postgres://\w+:\w+@[^:]*:(\w+)', database_url).group(1)),
-        'database': re.search('postgres://\w+:\w+@[^:]*:\w+/(\w+)', database_url).group(1)
+        'user': re.search(r'(?<=postgres://)\w+', database_url).group(0),
+        'password': re.search(r'postgres://\w+:(\w+)', database_url).group(1),
+        'host': re.search(r'postgres://\w+:\w+@([^:]*)', database_url).group(1),
+        'port': int(re.search(r'postgres://\w+:\w+@[^:]*:(\w+)', database_url).group(1)),
+        'database': re.search(r'postgres://\w+:\w+@[^:]*:\w+/(\w+)', database_url).group(1)
     }
     return cred
 
