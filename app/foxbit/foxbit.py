@@ -1,3 +1,4 @@
+import asyncio
 import hashlib, hmac
 import json
 import os
@@ -8,6 +9,7 @@ from datetime import datetime, timezone
 from .constants import *
 from .throttle import throttle
 from .utils import *
+from .mocker import mocker
 from ..constant import env_name
 
 class Foxbit(object):
@@ -18,12 +20,12 @@ class Foxbit(object):
   def _getApiSecret(self):
     if env_name() == 'production':
       return os.getenv('FOXBIT_API_SECRET')
-    return os.getenv('FOXBIT_API_SECRET_DEV')
+    return ''
 
   def _getApiKey(self):
     if env_name() == 'production':
       return os.getenv('FOXBIT_API_KEY')
-    return os.getenv('FOXBIT_API_KEY_DEV')
+    return ''
 
   def _buildQuery(self, **params):
     params = compact(params)
@@ -55,6 +57,18 @@ class Foxbit(object):
 
     return headers
 
+  @mocker
+  async def _async_request(self, method, url, headers, params, json):
+    # TODO: Change requests to httpx
+    return await asyncio.to_thread(
+        requests.request,
+        method,
+        url,
+        headers=headers,
+        params=params,
+        json=json
+    )
+
   async def _request(self, method, path, auth=True, body=None, **params):
     if body:
       body = compact(body)
@@ -65,7 +79,7 @@ class Foxbit(object):
       headers = self._buildHeaders(method, path, query, body)
 
     url = self._domain + self._resource_prefix + path
-    response = requests.request(method.value, url, headers=headers, params=query, json=body)
+    response = await self._async_request(method.value, url, headers=headers, params=query, json=body)
     data = None
 
     if response.status_code != 500:
@@ -98,11 +112,13 @@ class Foxbit(object):
 
     return candlesticks
 
+  # TODO: Remove it
   @throttle
   async def getMe(self):
     userInfo, code = await self._request(method=RestMethod.GET, path='/me')
     return userInfo
 
+  # TODO: Use this one instead of constant value
   @throttle
   async def getTradingFees(self):
     fees, code = await self._request(method=RestMethod.GET, path='/me/fees/trading')
