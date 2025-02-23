@@ -1,6 +1,6 @@
 from datetime import datetime
 
-MIGRATIONS_DIR = 'app/db/migrations/'
+MIGRATIONS_DIR = './db/migrations/'
 
 def main():
     description = input("Brief migration description: ")
