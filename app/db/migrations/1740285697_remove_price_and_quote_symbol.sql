@@ -1,0 +1,7 @@
+BEGIN;
+
+ALTER TABLE balances 
+DROP COLUMN IF EXISTS price,
+DROP COLUMN IF EXISTS quote_symbol;
+
+COMMIT;
