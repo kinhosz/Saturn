@@ -157,3 +157,4 @@ Include
 pyvenv.cfg
 .vscode/
 bin/
+.foxbit_bin/

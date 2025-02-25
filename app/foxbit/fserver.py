@@ -87,6 +87,7 @@ class FServer(object):
 
         return executed_orders
 
+    # TODO: Dead code
     async def _list_orders(self, start_time=None, end_time=None, order_side=None):
         if start_time:
             start_time = start_time.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
