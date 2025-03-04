@@ -145,7 +145,7 @@ class FServer(object):
             if side == 'BUY':
                 trading_setting.exchange_count += 1
             else:
-                trading_setting = max(trading_setting - 1, 0)
+                trading_setting.exchange_count = max(trading_setting.exchange_count - 1, 0)
             trading_setting.save()
 
             self._telegram_buffer.push({
