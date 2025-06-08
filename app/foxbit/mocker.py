@@ -50,7 +50,7 @@ def handle_requests(method, url, headers, params, json):
 
     resource = 'https://api.foxbit.com.br/rest/v3/markets/$market_symbol/candlesticks'
     if route_match(url, method, resource, 'GET'):
-        return execute_public_request(method, url, headers, params, json)
+        return execute_get_candlesticks()
 
     resource = 'https://api.foxbit.com.br/rest/v3/orders'
     if route_match(url, method, resource, 'POST'):
@@ -65,6 +65,28 @@ def handle_requests(method, url, headers, params, json):
 def execute_public_request(method, url, headers, params, json):
     ''' Executing requests that auth is not needed '''
     return requests.request(method, url, headers=headers, params=params, json=json)
+
+def execute_get_candlesticks():
+    ''' Mocking get_candlesticks for user input '''
+
+    price = input("Type the current price: ")
+    data = [
+        [
+            "1692918000000",
+            str(price),
+            str(price),
+            str(price),
+            str(price),
+            "1692918060000",
+            "0.17080431",
+            "21866.35948786",
+            66,
+            "0.12073605",
+            "15466.34096391"
+        ]
+    ]
+
+    return Response(data, 200)
 
 def execute_create_order(data):
     ''' Creating an order - json type '''
@@ -120,15 +142,15 @@ def process_orders():
 
     def apply_taxes(order):
         quantity_executed = float(order.get('quantity_executed', 0.0))        
-        if order['side'] == 'SELL':
+        if order['side'] == 'BUY':
             fee_paid = quantity_executed * 0.005
             order['quantity_executed'] = str(quantity_executed - fee_paid)
         else:
-            fee_paid = float(order['price_avg']) * 0.005
+            fee_paid = (float(order['price_avg']) * float(order['quantity_executed'])) * 0.005
         order['fee_paid'] = str(fee_paid)
 
     def add_trade(order, quantity):
-        perc_diff = random.uniform(0.0, 0.1)
+        perc_diff = random.uniform(0.0, 0.01)
         perc = 1.0 + (perc_diff if order['side'] == 'SELL' else -perc_diff)
         current_price = float(order['price']) * perc
         executed_price = float(order['price_avg'])

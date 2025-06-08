@@ -216,7 +216,7 @@ class FServer(object):
         })
 
     def _refund_order(self, order: Order):
-        if order.side == 'BUY':
+        if order.side == 'BUY': # TODO: quantity_executed includes fee_paid?
             btc_amount = order.quantity_executed - order.fee_paid
             btc_amount_cost = order.quantity_executed * order.price_avg # taxes included
             brl_amount = order.quantity * order.price

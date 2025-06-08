@@ -213,7 +213,7 @@ class UserSession(object):
       if b.base_symbol == 'BRL':
         balance_in_brl = b
       elif b.base_symbol == 'BTC':
-        balance_in_btc = b       
+        balance_in_btc = b
 
     res = await self._foxbit.getCandlesticks(market_symbol='btcbrl', interval='1m', limit=1)
     btc_price = round(float(res[0]['close_price']), 2)
@@ -229,7 +229,7 @@ class UserSession(object):
       price_to_buy = 'Saldo insuficiente'
     else:
       price_to_buy = round((brl_balance / brl_cost) * (trading.percentage_to_buy ** max(trading.exchange_count, 1.0)), 2)
-    
+
     if btc_balance < MINIMUM_BTC_TRADING:
       price_to_sell = 'Saldo insuficiente'
     else:
