@@ -4,7 +4,7 @@ from app.algorithms import Queue
 from app import session
 from app.foxbit import Foxbit
 from app.foxbit.constants import DepositStage, MINIMUM_BTC_TRADING
-from app.models import Balance, Deposit, TradingSetting, User
+from app.models import Balance, Deposit, Quota, TradingSetting, User
 
 from typing import List
 
@@ -109,6 +109,8 @@ class UserSession(object):
       await self._getTradingInfo()
     elif text == '/trading_rebase':
       await self._tradingRebase()
+    elif text == '/open_quotas':
+      self._getOpenQuotas()
 
   """ Session Operations """
   def _auth(func):
@@ -270,3 +272,18 @@ class UserSession(object):
     balance.save()
 
     self._sendManagerMessage(session.BALANCE_REBASED)
+
+  @_catch_error
+  @_auth
+  def _getOpenQuotas(self):
+    quotas: List[Quota] = Quota.where(user_id=[self._id], quota_state=['ACTIVE'])
+
+    data = []
+    for quota in quotas:
+      data.append({
+        'amount': quota.amount,
+        'price': quota.price,
+        'created_at': quota.created_at
+      })
+
+    self._sendManagerMessage(session.open_quotas(data))
