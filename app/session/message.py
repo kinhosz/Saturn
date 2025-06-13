@@ -73,3 +73,15 @@ def trading_info(
   msg += f"Saldo movimentado(BRL):\n{brl_moving} BRL\n"
 
   return msg
+
+def open_quotas(quotas):
+  msg = f"{len(quotas)} Quotas Abertas\n"
+
+  for i in range(len(quotas)):
+    msg += "\n----------------\n"
+    msg += f"Quota #{i + 1}\n\n"
+    msg += f"Preço:       {quotas[i]['price']:.2f} BRL\n"
+    msg += f"Quantidade:  {quotas[i]['amount']:.7f} BTC\n"
+    msg += f"Criada em:   {quotas[i]['created_at'].strftime('%d/%m/%Y')}\n"
+
+  return msg

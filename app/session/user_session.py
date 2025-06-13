@@ -4,7 +4,7 @@ from app.algorithms import Queue
 from app import session
 from app.foxbit import Foxbit
 from app.foxbit.constants import DepositStage, MINIMUM_BTC_TRADING
-from app.models import Balance, Deposit, TradingSetting, User
+from app.models import Balance, Deposit, Quota, TradingSetting, User
 
 from typing import List
 
@@ -109,6 +109,8 @@ class UserSession(object):
       await self._getTradingInfo()
     elif text == '/trading_rebase':
       await self._tradingRebase()
+    elif text == '/open_quotas':
+      self._getOpenQuotas()
 
   """ Session Operations """
   def _auth(func):
@@ -213,7 +215,7 @@ class UserSession(object):
       if b.base_symbol == 'BRL':
         balance_in_brl = b
       elif b.base_symbol == 'BTC':
-        balance_in_btc = b       
+        balance_in_btc = b
 
     res = await self._foxbit.getCandlesticks(market_symbol='btcbrl', interval='1m', limit=1)
     btc_price = round(float(res[0]['close_price']), 2)
@@ -229,7 +231,7 @@ class UserSession(object):
       price_to_buy = 'Saldo insuficiente'
     else:
       price_to_buy = round((brl_balance / brl_cost) * (trading.percentage_to_buy ** max(trading.exchange_count, 1.0)), 2)
-    
+
     if btc_balance < MINIMUM_BTC_TRADING:
       price_to_sell = 'Saldo insuficiente'
     else:
@@ -270,3 +272,18 @@ class UserSession(object):
     balance.save()
 
     self._sendManagerMessage(session.BALANCE_REBASED)
+
+  @_catch_error
+  @_auth
+  def _getOpenQuotas(self):
+    quotas: List[Quota] = Quota.where(user_id=[self._id], quota_state=['ACTIVE'])
+
+    data = []
+    for quota in quotas:
+      data.append({
+        'amount': quota.amount,
+        'price': quota.price,
+        'created_at': quota.created_at
+      })
+
+    self._sendManagerMessage(session.open_quotas(data))
