@@ -173,7 +173,7 @@ class FServer(object):
 
             balances: List[Balance] = Balance.where(user_id=[quota.user_id], base_symbol=['BTC'])
 
-            res, code = await self._createOrderLimit(OrderSide.SELL.value, quota.amount, price_for_sell)
+            res, code = await self._createOrderLimit(OrderSide.SELL.value, quota.amount, price)
             if code == 201:
                 partial_price = quota.amount * quota.price
 
