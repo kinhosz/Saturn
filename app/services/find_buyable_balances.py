@@ -12,7 +12,7 @@ SELECT
     )                                               AS partial_amount,
     b.price * ts.allocation_percentage              AS partial_price,
     b.user_id                                       AS user_id
-FROM balances                                       AS b
+FROM holding                                        AS b
 JOIN wallet                                         AS ts
   ON ts.user_id = b.user_id
 WHERE b.base_symbol                                 = 'BRL'
@@ -38,13 +38,13 @@ WHERE b.base_symbol                                 = 'BRL'
 
   res = Model.manual(sql_query)
 
-  balances = []
+  holdings = []
   for r in res:
-    balances.append({
+    holdings.append({
       'balance_id': r[0],
       'partial_amount': r[1],
       'partial_price': r[2],
       'user_id': r[3]
     })
 
-  return balances
+  return holdings

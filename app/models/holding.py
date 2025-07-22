@@ -1,7 +1,7 @@
 from orm import Fields, Model
 
-class Balance(Model):
-    _table = 'balances'
+class Holding(Model):
+    _table = 'holding'
 
     id = Fields.id()
     user_id = Fields.reference()

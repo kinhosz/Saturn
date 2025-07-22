@@ -43,38 +43,38 @@ def activate_deposits(deposit_ids, btc_price):
     Model.manual(sql_query, False)
 
     sql_query = f"""
-        SELECT b.id, b.user_id, b.amount, b.price
-        FROM balances AS b
+        SELECT h.id, h.user_id, h.amount, h.price
+        FROM holding AS h
         JOIN deposits AS d
-        ON d.user_id = b.user_id
+        ON d.user_id = h.user_id
         WHERE d.id IN ({valid_deposit_ids_in_str})
         AND base_symbol = 'BRL';
     """
 
     res = Model.manual(sql_query)
 
-    balances = []
+    holdings = []
     for r in res:
         balance_id, user_id, amount, price = r
 
         new_amount = amount + deposits_by_user[user_id]['amount']
         new_price = price + (deposits_by_user[user_id]['amount'] / btc_price)
-        balances.append((balance_id, new_amount, new_price))
+        holdings.append((balance_id, new_amount, new_price))
 
     case_amount = ""
     case_price = ""
 
-    balance_ids = []
+    holding_ids = []
 
-    for balance in balances:
-        case_amount += f"WHEN id = {balance[0]} THEN {balance[1]}\n"
-        case_price += f"WHEN id = {balance[0]} THEN {balance[2]}\n"
-        balance_ids.append(balance[0])
+    for holding in holdings:
+        case_amount += f"WHEN id = {holding[0]} THEN {holding[1]}\n"
+        case_price += f"WHEN id = {holding[0]} THEN {holding[2]}\n"
+        holding_ids.append(holding[0])
 
-    balance_ids_str = ", ".join(map(str, balance_ids))
+    holding_ids_str = ", ".join(map(str, holding_ids))
 
     sql_query = f"""
-        UPDATE balances
+        UPDATE holding
         SET
             amount = CASE
                 {case_amount}
@@ -82,7 +82,7 @@ def activate_deposits(deposit_ids, btc_price):
             price = CASE
                 {case_price}
             END
-        WHERE id IN ({balance_ids_str});
+        WHERE id IN ({holding_ids_str});
     """
 
     Model.manual(sql_query, False)
