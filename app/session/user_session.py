@@ -4,7 +4,7 @@ from app.algorithms import Queue
 from app import session
 from app.foxbit import Foxbit
 from app.foxbit.constants import DepositStage, MINIMUM_BTC_TRADING
-from app.models import Balance, Deposit, Quota, TradingSetting, User
+from app.models import Balance, Deposit, Quota, User, Wallet
 
 from typing import List
 
@@ -206,7 +206,7 @@ class UserSession(object):
   @_auth
   async def _getTradingInfo(self):
     user = User.find_by('telegram_chat_id', self._chat_id)
-    trading = TradingSetting.find_by('user_id', user.id)
+    trading = Wallet.find_by('user_id', user.id)
     balances: List[Balance] = Balance.where(user_id=[user.id])
     balance_in_brl = None
     balance_in_btc = None

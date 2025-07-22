@@ -1,7 +1,7 @@
 from .activate_deposits import activate_deposits
 from .activate_users import activate_users
 from .create_balances import create_balances
-from .create_trading_settings import create_trading_settings
+from .create_wallet import create_wallet
 from .find_buyable_balances import find_buyable_balances
 
 from .utils import *
