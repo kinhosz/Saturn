@@ -1,5 +1,5 @@
 from datetime import datetime
-from app.models import Balance, Order, Quota, TradingSetting, User
+from app.models import Balance, Order, Quota, User, Wallet
 
 def common():
     user = User()
@@ -8,7 +8,7 @@ def common():
     user.telegram_chat_id = 123456
     user.save()
 
-    trading = TradingSetting()
+    trading = Wallet()
     trading.user_id = user.id
     trading.lock_buy = False
     trading.lock_sell = False

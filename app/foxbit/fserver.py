@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime, timezone
 from typing import List
 
-from app.models import Balance, Order, Quota, TradingSetting, User
+from app.models import Balance, Order, Quota, User, Wallet
 
 from .foxbit import Foxbit
 from .constants import *
@@ -110,7 +110,7 @@ class FServer(object):
 
     def _lock_operations_for_security(self, user_id, data, code):
         user = User(user_id)
-        ts = TradingSetting.find_by('user_id', user.id)
+        ts = Wallet.find_by('user_id', user.id)
         ts.lock_buy = True
         ts.lock_sell = True
         ts.save()
@@ -141,7 +141,7 @@ class FServer(object):
             balance.price -= order_json['partial_price']
             balance.save()
 
-            trading_setting = TradingSetting.find_by('user_id', order.user_id)
+            trading_setting = Wallet.find_by('user_id', order.user_id)
             if side == 'BUY':
                 trading_setting.exchange_count += 1
             else:
@@ -165,7 +165,7 @@ class FServer(object):
         quotas: List[Quota] = Quota.where(quota_state=['ACTIVE'])
 
         for quota in quotas:
-            trading_setting = TradingSetting.find_by('user_id', quota.user_id)
+            trading_setting = Wallet.find_by('user_id', quota.user_id)
             price_for_sell = (quota.price * trading_setting.percentage_to_sell)
 
             if price_for_sell > price:

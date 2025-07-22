@@ -13,7 +13,7 @@ SELECT
     b.price * ts.allocation_percentage              AS partial_price,
     b.user_id                                       AS user_id
 FROM balances                                       AS b
-JOIN trading_settings                               AS ts
+JOIN wallet                                         AS ts
   ON ts.user_id = b.user_id
 WHERE b.base_symbol                                 = 'BRL'
   AND b.quote_symbol                                = 'BTC'

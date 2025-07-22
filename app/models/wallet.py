@@ -1,7 +1,7 @@
 from orm import Fields, Model
 
-class TradingSetting(Model):
-    _table = 'trading_settings'
+class Wallet(Model):
+    _table = 'wallet'
 
     id = Fields.id()
     user_id = Fields.reference()
