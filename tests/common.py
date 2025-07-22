@@ -1,5 +1,5 @@
 from datetime import datetime
-from app.models import Balance, Order, Quota, User, Wallet
+from app.models import Holding, Order, Quota, User, Wallet
 
 def common():
     user = User()
@@ -18,21 +18,21 @@ def common():
     trading.exchange_count = 0
     trading.save()
 
-    brl_balance = Balance()
-    brl_balance.user_id = user.id
-    brl_balance.amount = 100000.0
-    brl_balance.base_symbol = 'BRL'
-    brl_balance.price = 1.0
-    brl_balance.quote_symbol = 'BTC'
-    brl_balance.save()
+    brl_holding = Holding()
+    brl_holding.user_id = user.id
+    brl_holding.amount = 100000.0
+    brl_holding.base_symbol = 'BRL'
+    brl_holding.price = 1.0
+    brl_holding.quote_symbol = 'BTC'
+    brl_holding.save()
 
-    btc_balance = Balance()
-    btc_balance.user_id = user.id
-    btc_balance.amount = 1.0
-    btc_balance.base_symbol = 'BTC'
-    btc_balance.price = 100000.0
-    btc_balance.quote_symbol = 'BRL'
-    btc_balance.save()
+    btc_holding = Holding()
+    btc_holding.user_id = user.id
+    btc_holding.amount = 1.0
+    btc_holding.base_symbol = 'BTC'
+    btc_holding.price = 100000.0
+    btc_holding.quote_symbol = 'BRL'
+    btc_holding.save()
 
     return user
 

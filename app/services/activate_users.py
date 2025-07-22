@@ -1,5 +1,5 @@
 from app.services.utils import list_to_str
-from app.services.create_balances import create_balances
+from app.services.create_holdings import create_holdings
 from app.services.create_wallet import create_wallet
 from orm import Model
 
@@ -32,5 +32,5 @@ def activate_users(user_ids):
 
     Model.manual(sql_query, False)
 
-    create_balances(valid_ids)
+    create_holdings(valid_ids)
     create_wallet(valid_ids)

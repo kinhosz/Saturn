@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime, timezone
 from typing import List
 
-from app.models import Balance, Order, Quota, User, Wallet
+from app.models import Holding, Order, Quota, User, Wallet
 
 from .foxbit import Foxbit
 from .constants import *
@@ -50,14 +50,14 @@ class FServer(object):
         return candlesticks[0]
 
     async def _rebase_price(self):
-        balances: List[Balance] = Balance.where(base_symbol=['BRL'])
+        holdings: List[Holding] = Holding.where(base_symbol=['BRL'])
         candlesticks = await self._foxbit.getCandlesticks(market_symbol='btcbrl', interval='15m', limit=500)
 
         avg_price = price_by_volume(candlesticks)
 
-        for balance in balances:
-            balance.price = balance.amount / avg_price
-            balance.save()
+        for holding in holdings:
+            holding.price = holding.amount / avg_price
+            holding.save()
 
     async def _createOrderLimit(self, side, quantity, price):
         client_order_id = str(generate_numeric_uuid())
@@ -68,17 +68,17 @@ class FServer(object):
         return res, code
 
     async def _execute_purchase_orders(self, price):
-        buyable_balances = find_buyable_balances(price, MINIMUM_BTC_TRADING)
+        buyable_holdings = find_buyable_balances(price, MINIMUM_BTC_TRADING)
         executed_orders = []
-        for balance in buyable_balances:
-            quantity = balance['partial_amount'] / price
+        for holding in buyable_holdings:
+            quantity = holding['partial_amount'] / price
             res, code = await self._createOrderLimit(OrderSide.BUY.value, quantity, price)
             if code == 201:
                 executed_orders.append({
-                    'balance_id': balance['balance_id'],
-                    'user_id': balance['user_id'],
-                    'partial_price': balance['partial_price'],
-                    'partial_amount': balance['partial_amount'],
+                    'balance_id': holding['balance_id'],
+                    'user_id': holding['user_id'],
+                    'partial_price': holding['partial_price'],
+                    'partial_amount': holding['partial_amount'],
                     'foxbit_order_id': str(res['id']),
                     'client_order_id': str(res['client_order_id'])
                 })
@@ -136,10 +136,10 @@ class FServer(object):
             order.user_id = order_json['user_id']
             order.save()
 
-            balance = Balance(order_json['balance_id'])
-            balance.amount -= order_json['partial_amount']
-            balance.price -= order_json['partial_price']
-            balance.save()
+            holding = Holding(order_json['balance_id'])
+            holding.amount -= order_json['partial_amount']
+            holding.price -= order_json['partial_price']
+            holding.save()
 
             trading_setting = Wallet.find_by('user_id', order.user_id)
             if side == 'BUY':
@@ -171,14 +171,14 @@ class FServer(object):
             if price_for_sell > price:
                 continue
 
-            balances: List[Balance] = Balance.where(user_id=[quota.user_id], base_symbol=['BTC'])
+            holdings: List[Holding] = Holding.where(user_id=[quota.user_id], base_symbol=['BTC'])
 
             res, code = await self._createOrderLimit(OrderSide.SELL.value, quota.amount, price)
             if code == 201:
                 partial_price = quota.amount * quota.price
 
                 executed_orders.append({
-                    'balance_id': balances[0].id,
+                    'balance_id': holdings[0].id,
                     'user_id': quota.user_id,
                     'partial_amount': quota.amount,
                     'partial_price': partial_price,
@@ -238,18 +238,18 @@ class FServer(object):
             quota.quota_state = 'ACTIVE'
             quota.save()
 
-        balances: List[Balance] = Balance.where(user_id = [order.user_id])
-        for balance in balances:
-            if balance.base_symbol == 'BTC' and balance.quote_symbol == 'BRL':
-                balance.amount += btc_amount
-                balance.price += btc_amount_cost
-            elif balance.base_symbol == 'BRL' and balance.quote_symbol == 'BTC':
-                balance.amount += brl_amount
-                balance.price += brl_amount_cost
+        holdings: List[Holding] = Holding.where(user_id = [order.user_id])
+        for holding in holdings:
+            if holding.base_symbol == 'BTC' and holding.quote_symbol == 'BRL':
+                holding.amount += btc_amount
+                holding.price += btc_amount_cost
+            elif holding.base_symbol == 'BRL' and holding.quote_symbol == 'BTC':
+                holding.amount += brl_amount
+                holding.price += brl_amount_cost
             else:
                 continue
 
-            balance.save()
+            holding.save()
 
     async def _process_active_orders(self):
         active_orders: List[Order] = Order.where(order_state=['PARTIALLY_FILLED', 'ACTIVE'])

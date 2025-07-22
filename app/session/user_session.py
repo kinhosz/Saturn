@@ -4,7 +4,7 @@ from app.algorithms import Queue
 from app import session
 from app.foxbit import Foxbit
 from app.foxbit.constants import DepositStage, MINIMUM_BTC_TRADING
-from app.models import Balance, Deposit, Quota, User, Wallet
+from app.models import Holding, Deposit, Quota, User, Wallet
 
 from typing import List
 
@@ -207,39 +207,39 @@ class UserSession(object):
   async def _getTradingInfo(self):
     user = User.find_by('telegram_chat_id', self._chat_id)
     trading = Wallet.find_by('user_id', user.id)
-    balances: List[Balance] = Balance.where(user_id=[user.id])
-    balance_in_brl = None
-    balance_in_btc = None
+    holdings: List[Holding] = Holding.where(user_id=[user.id])
+    holding_in_brl = None
+    holding_in_btc = None
     
-    for b in balances:
+    for b in holdings:
       if b.base_symbol == 'BRL':
-        balance_in_brl = b
+        holding_in_brl = b
       elif b.base_symbol == 'BTC':
-        balance_in_btc = b
+        holding_in_btc = b
 
     res = await self._foxbit.getCandlesticks(market_symbol='btcbrl', interval='1m', limit=1)
     btc_price = round(float(res[0]['close_price']), 2)
     btc_high = round(float(res[0]['highest_price']), 2)
     btc_low = round(float(res[0]['lowest_price']), 2)
-    btc_balance = round(balance_in_btc.amount, 8)
-    brl_balance = round(balance_in_brl.amount, 2)
-    btc_cost = round(balance_in_btc.price, 2)
-    brl_cost = round(balance_in_brl.price, 8)
-    brl_moving = round(brl_balance + btc_cost, 2)
-    brl_current_balance = round(brl_balance + btc_balance * btc_price, 2)
+    btc_holding = round(holding_in_btc.amount, 8)
+    brl_holding = round(holding_in_brl.amount, 2)
+    btc_cost = round(holding_in_btc.price, 2)
+    brl_cost = round(holding_in_brl.price, 8)
+    brl_moving = round(brl_holding + btc_cost, 2)
+    brl_current_holding= round(brl_holding + btc_holding * btc_price, 2)
     if brl_cost < MINIMUM_BTC_TRADING:
       price_to_buy = 'Saldo insuficiente'
     else:
-      price_to_buy = round((brl_balance / brl_cost) * (trading.percentage_to_buy ** max(trading.exchange_count, 1.0)), 2)
+      price_to_buy = round((brl_holding/ brl_cost) * (trading.percentage_to_buy ** max(trading.exchange_count, 1.0)), 2)
 
-    if btc_balance < MINIMUM_BTC_TRADING:
+    if btc_holding < MINIMUM_BTC_TRADING:
       price_to_sell = 'Saldo insuficiente'
     else:
-      price_to_sell = round((btc_cost / btc_balance) * (trading.percentage_to_sell ** abs(min(trading.exchange_count, -1.0))), 2)
+      price_to_sell = round((btc_cost / btc_holding) * (trading.percentage_to_sell ** abs(min(trading.exchange_count, -1.0))), 2)
 
     self._sendManagerMessage(session.trading_info(
-      btc_price, btc_high, btc_low, price_to_sell, price_to_buy, btc_balance, btc_cost,
-      brl_balance, brl_cost, brl_current_balance, brl_moving
+      btc_price, btc_high, btc_low, price_to_sell, price_to_buy, btc_holding, btc_cost,
+      brl_holding, brl_cost, brl_current_holding, brl_moving
     )) 
 
   @_catch_error
@@ -264,12 +264,12 @@ class UserSession(object):
   async def _tradingRebase(self):
     representative_price = await self._getRepresentativeBTCPrice()
 
-    balances: List[Balance] = Balance.where(user_id=[self._id], base_symbol=['BRL'])
-    balance = balances[0]
+    holdings: List[Holding] = Holding.where(user_id=[self._id], base_symbol=['BRL'])
+    holding = holdings[0]
 
-    btc_amount = balance.amount / representative_price
-    balance.price = btc_amount
-    balance.save()
+    btc_amount = holding.amount / representative_price
+    holding.price = btc_amount
+    holding.save()
 
     self._sendManagerMessage(session.BALANCE_REBASED)
 

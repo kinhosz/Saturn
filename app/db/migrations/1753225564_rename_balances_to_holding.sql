@@ -1,0 +1,5 @@
+BEGIN;
+
+ALTER TABLE balances RENAME TO holding;
+
+COMMIT;
