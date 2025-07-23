@@ -5,6 +5,7 @@ class Holding(Model):
 
     id = Fields.id()
     user_id = Fields.reference()
+    wallet_id = Fields.reference()
     amount = Fields.double()
     base_symbol = Fields.varchar()
     # TODO: Remove price and quote_symbol
