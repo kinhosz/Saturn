@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from . import TypedEnv
 
 class User(Model):
-    _table = 'users'
+    _table = 'res_user'
 
     id = Fields.id()
     telegram_chat_id = Fields.integer()

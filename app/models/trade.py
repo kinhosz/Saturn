@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, List
 if TYPE_CHECKING:
     from . import TypedEnv
 
-class Order(Model):
-    _table = 'orders'
+class Trade(Model):
+    _table = 'trade'
 
     id = Fields.id()
     user_id = Fields.reference()
@@ -53,9 +53,9 @@ class Order(Model):
         return super().env
 
     @classmethod
-    def find_by(cls, k, v) -> 'Order':
+    def find_by(cls, k, v) -> 'Trade':
         return super().find_by(k, v)
 
     @classmethod
-    def where(cls, **kwargs) -> List['Order']:
+    def where(cls, **kwargs) -> List['Trade']:
         return super().where(**kwargs)

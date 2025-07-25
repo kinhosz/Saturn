@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from . import TypedEnv
 
 class Deposit(Model):
-    _table = 'deposits'
+    _table = 'deposit'
 
     id = Fields.id()
     user_id = Fields.reference()
