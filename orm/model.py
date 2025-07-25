@@ -1,10 +1,13 @@
+from .meta import MetaModel
+from .registry import Env
 from .fields import Fields
 from .queries import _select_by, _insert, _update, _where
 
 from datetime import datetime
 
-class Model:
+class Model(metaclass=MetaModel):
     _connection = None
+    env = Env()
 
     def __init_subclass__(cls):
         for attr_name, attr_value in cls.__dict__.items():
