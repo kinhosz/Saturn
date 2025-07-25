@@ -1,5 +1,5 @@
-from .meta import MetaModel
 from .registry import Env
+from .meta import MetaModel
 from .fields import Fields
 from .queries import _select_by, _insert, _update, _where
 
@@ -7,7 +7,7 @@ from datetime import datetime
 
 class Model(metaclass=MetaModel):
     _connection = None
-    env = Env()
+    _env = Env()
 
     def __init_subclass__(cls):
         for attr_name, attr_value in cls.__dict__.items():
@@ -42,6 +42,13 @@ class Model(metaclass=MetaModel):
             self._transaction(sql)
 
     ''' ClassMethods '''
+    @classmethod
+    def set_env(cls, env):
+        cls._env = env
+
+    @property
+    def env(cls) -> Env:
+        return cls._env
 
     @classmethod
     def set_connection(cls, conn):
