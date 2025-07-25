@@ -1,11 +1,11 @@
-from app.models import Order, Quota
+from app.models import Trade, Quota
 from app.foxbit import FServer
 
 from tests import float_compare
 from tests import common
 
-def base_order() -> Order:
-    order = Order()
+def base_order() -> Trade:
+    order = Trade()
     order.client_order_id = '123456'
     order.market_symbol = 'btcbrl'
     order.side = 'BUY'

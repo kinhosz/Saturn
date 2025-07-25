@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from . import TypedEnv
 
 class Quota(Model):
-    _table = 'quotas'
+    _table = 'quota'
 
     id = Fields.id()
     user_id = Fields.reference()

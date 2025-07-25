@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime, timezone
 from typing import List
 
-from app.models import Holding, Order, Quota, User, Wallet
+from app.models import Holding, Trade, Quota, User, Wallet
 
 from .foxbit import Foxbit
 from .constants import *
@@ -130,7 +130,7 @@ class FServer(object):
             if code != 200:
                 self._lock_operations_for_security(user.id, data, code)
                 continue
-            order = Order()
+            order = Trade()
             order.update_from_foxbit(data)
             order.order_state = 'ACTIVE'
             order.user_id = order_json['user_id']
@@ -196,7 +196,7 @@ class FServer(object):
         executed_orders = await self._execute_sale_orders(price)
         await self._handle_executed_orders(executed_orders, 'SELL')
 
-    def _notify_order_done(self, order: Order):
+    def _notify_order_done(self, order: Trade):
         user = User(order.user_id)
         if order.order_state == 'CANCELED':
             msg = order_cancelled(order.quantity, order.price_avg, order.cancellation_reason)
@@ -215,7 +215,7 @@ class FServer(object):
             }
         })
 
-    def _refund_order(self, order: Order):
+    def _refund_order(self, order: Trade):
         if order.side == 'BUY': # TODO: quantity_executed includes fee_paid?
             btc_amount = order.quantity_executed - order.fee_paid
             btc_amount_cost = order.quantity_executed * order.price_avg # taxes included
@@ -252,7 +252,7 @@ class FServer(object):
             holding.save()
 
     async def _process_active_orders(self):
-        active_orders: List[Order] = Order.where(order_state=['PARTIALLY_FILLED', 'ACTIVE'])
+        active_orders: List[Trade] = Trade.where(order_state=['PARTIALLY_FILLED', 'ACTIVE'])
 
         for order in active_orders:
             data, code = await self._foxbit.getOrder(order.foxbit_order_id)

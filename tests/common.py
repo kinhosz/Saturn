@@ -1,5 +1,5 @@
 from datetime import datetime
-from app.models import Holding, Order, Quota, User, Wallet
+from app.models import Holding, Trade, Quota, User, Wallet
 
 def common():
     user = User()
@@ -37,7 +37,7 @@ def common():
     return user
 
 def create_quota(user_id, amount, price):
-    order = Order()
+    order = Trade()
     order.user_id = user_id
     # Mandatory fields
     order.client_order_id = '123456'
