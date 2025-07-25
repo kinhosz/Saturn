@@ -1,5 +1,9 @@
 from orm import Fields, Model
 
+from typing import TYPE_CHECKING, List
+if TYPE_CHECKING:
+    from . import TypedEnv
+
 class Order(Model):
     _table = 'orders'
 
@@ -41,3 +45,17 @@ class Order(Model):
         self.funds_received = vals.get('funds_received', self.funds_received)
         self.fee_paid = vals.get('fee_paid', self.fee_paid)
         self.cancellation_reason = vals.get('cancellation_reason', self.cancellation_reason)
+
+
+    ################ Type Checking ######################
+    @property
+    def env(self) -> 'TypedEnv':
+        return super().env
+
+    @classmethod
+    def find_by(cls, k, v) -> 'Order':
+        return super().find_by(k, v)
+
+    @classmethod
+    def where(cls, **kwargs) -> List['Order']:
+        return super().where(**kwargs)
