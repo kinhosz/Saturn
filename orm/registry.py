@@ -8,11 +8,11 @@ class ModelRegistry:
     @classmethod
     def register(cls, name, model_class):
         cls._models[name] = model_class
+        logger.info(f"Model {name} registered")
 
     @classmethod
     def get(cls, name):
-        return cls._models[name]
-
+        return cls._models.get(name, None)
 
 class Env:
     def __getitem__(self, name):

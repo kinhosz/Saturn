@@ -8,8 +8,8 @@ class Quota(Model):
     _table = 'quota'
 
     id = Fields.id()
-    user_id = Fields.reference()
-    purchase_order_id = Fields.reference()
+    user_id = Fields.reference('res_user')
+    purchase_order_id = Fields.reference('trade')
     quota_state = Fields.varchar()
     amount = Fields.double()
     price = Fields.double()

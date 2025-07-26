@@ -8,7 +8,7 @@ class Deposit(Model):
     _table = 'deposit'
 
     id = Fields.id()
-    user_id = Fields.reference()
+    user_id = Fields.reference('res_user')
     amount = Fields.double()
     stage = Fields.varchar()
 
