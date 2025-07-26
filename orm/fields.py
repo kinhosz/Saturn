@@ -1,10 +1,14 @@
 from .queries import _select
+from .registry import Env
 from datetime import datetime
+
+env = Env()
 
 class Fields:
     class Field:
-        def __init__(self, field_type):
+        def __init__(self, field_type, **kwargs):
             self._field_type = field_type
+            self._kwargs = kwargs
             self._name = None
 
         def __set_name__(self, owner, name):
@@ -21,7 +25,12 @@ class Fields:
                     value = value[0]
                 record._data[self._name] = self._convert_from_database(value)
 
-            return record._data.get(self._name, None)
+            fvalue = record._data.get(self._name, None)
+
+            if self._field_type == 'reference' and fvalue:
+                fvalue = env[self._kwargs.get('table')](fvalue)
+
+            return fvalue
 
         def __set__(self, record, value):
             if value:
@@ -72,8 +81,8 @@ class Fields:
         return Fields.Field("integer")
 
     @staticmethod
-    def reference():
-        return Fields.Field("reference")
+    def reference(table):
+        return Fields.Field("reference", table=table)
 
     @staticmethod
     def timestamp():

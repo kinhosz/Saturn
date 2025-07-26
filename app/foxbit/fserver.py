@@ -141,7 +141,7 @@ class FServer(object):
             holding.price -= order_json['partial_price']
             holding.save()
 
-            trading_setting = Wallet.find_by('user_id', order.user_id)
+            trading_setting = Wallet.find_by('user_id', order.user_id.id)
             if side == 'BUY':
                 trading_setting.exchange_count += 1
             else:
@@ -165,13 +165,13 @@ class FServer(object):
         quotas: List[Quota] = Quota.where(quota_state=['ACTIVE'])
 
         for quota in quotas:
-            trading_setting = Wallet.find_by('user_id', quota.user_id)
+            trading_setting = Wallet.find_by('user_id', quota.user_id.id)
             price_for_sell = (quota.price * trading_setting.percentage_to_sell)
 
             if price_for_sell > price:
                 continue
 
-            holdings: List[Holding] = Holding.where(user_id=[quota.user_id], base_symbol=['BTC'])
+            holdings: List[Holding] = Holding.where(user_id=[quota.user_id.id], base_symbol=['BTC'])
 
             res, code = await self._createOrderLimit(OrderSide.SELL.value, quota.amount, price)
             if code == 201:
@@ -179,7 +179,7 @@ class FServer(object):
 
                 executed_orders.append({
                     'balance_id': holdings[0].id,
-                    'user_id': quota.user_id,
+                    'user_id': quota.user_id.id,
                     'partial_amount': quota.amount,
                     'partial_price': partial_price,
                     'foxbit_order_id': str(res['id']),
@@ -197,7 +197,7 @@ class FServer(object):
         await self._handle_executed_orders(executed_orders, 'SELL')
 
     def _notify_order_done(self, order: Trade):
-        user = User(order.user_id)
+        user = User(order.user_id.id)
         if order.order_state == 'CANCELED':
             msg = order_cancelled(order.quantity, order.price_avg, order.cancellation_reason)
         elif order.order_state == 'FILLED':
@@ -233,12 +233,12 @@ class FServer(object):
             quota.purchase_order_id = order.id
             quota.amount = btc_amount
             quota.price = price
-            quota.user_id = order.user_id
+            quota.user_id = order.user_id.id
             quota.created_at = datetime.now()
             quota.quota_state = 'ACTIVE'
             quota.save()
 
-        holdings: List[Holding] = Holding.where(user_id = [order.user_id])
+        holdings: List[Holding] = Holding.where(user_id = [order.user_id.id])
         for holding in holdings:
             if holding.base_symbol == 'BTC' and holding.quote_symbol == 'BRL':
                 holding.amount += btc_amount

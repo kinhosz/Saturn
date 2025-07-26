@@ -88,14 +88,14 @@ def test_quotas_creation(db_connection):
     assert len(quotas) == 2, "A Sale Order must not create a new quota"
 
     for quota in quotas:
-        assert quota.purchase_order_id in [order1.id, order2.id], "The purchase_order_id must be set"
+        assert quota.purchase_order_id.id in [order1.id, order2.id], "The purchase_order_id must be set"
 
-        if quota.purchase_order_id == order1.id:
+        if quota.purchase_order_id.id == order1.id:
             assert float_compare(quota.amount, order1.quantity_executed - order1.fee_paid) == 0, \
                 "The quota's amount must be the same of the executed quantity for an order, excluding the fee paid"
             assert float_compare(quota.price, order1.price_avg) == 1, "The quota price must be higher than the average order price"
 
-        if quota.purchase_order_id == order2.id:
+        if quota.purchase_order_id.id == order2.id:
             assert float_compare(quota.amount, order2.quantity_executed - order2.fee_paid) == 0, \
                 "The quota's amount must be the same of the executed quantity for an order, excluding the fee paid"
             assert float_compare(quota.price, order2.price_avg) == 1, "The quota price must be higher than the average order price"

@@ -6,7 +6,7 @@ from orm import Model
 def activate_users(user_ids):
     sql_query = f"""
         SELECT id, active
-        FROM users
+        FROM res_user
         WHERE id IN ({list_to_str(user_ids)});
     """
 
@@ -23,9 +23,9 @@ def activate_users(user_ids):
         return None
 
     sql_query = f"""
-        UPDATE users
+        UPDATE res_user
         SET active = TRUE
-        WHERE users.id IN ({list_to_str(valid_ids)});
+        WHERE res_user.id IN ({list_to_str(valid_ids)});
     """
 
     print("Active Users: {}".format(valid_ids))

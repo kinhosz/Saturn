@@ -5,7 +5,7 @@ def activate_deposits(deposit_ids, btc_price):
 
     sql_query = f"""
         SELECT id, user_id, amount, stage
-        FROM deposits
+        FROM deposit
         WHERE id IN ({deposit_ids_in_str});
     """
 
@@ -35,7 +35,7 @@ def activate_deposits(deposit_ids, btc_price):
     valid_deposit_ids_in_str = ", ".join(map(str, valid_deposits))
 
     sql_query = f"""
-        UPDATE deposits
+        UPDATE deposit
         SET stage = 'CONFIRMED'
         WHERE id IN ({valid_deposit_ids_in_str});
     """
@@ -45,7 +45,7 @@ def activate_deposits(deposit_ids, btc_price):
     sql_query = f"""
         SELECT h.id, h.user_id, h.amount, h.price
         FROM holding AS h
-        JOIN deposits AS d
+        JOIN deposit AS d
         ON d.user_id = h.user_id
         WHERE d.id IN ({valid_deposit_ids_in_str})
         AND base_symbol = 'BRL';

@@ -8,7 +8,7 @@ class Wallet(Model):
     _table = 'wallet'
 
     id = Fields.id()
-    user_id = Fields.reference()
+    user_id = Fields.reference('res_user')
     lock_buy = Fields.boolean()
     lock_sell = Fields.boolean()
     allocation_percentage = Fields.double()

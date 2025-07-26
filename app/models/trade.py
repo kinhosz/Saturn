@@ -8,7 +8,7 @@ class Trade(Model):
     _table = 'trade'
 
     id = Fields.id()
-    user_id = Fields.reference()
+    user_id = Fields.reference('res_user')
     foxbit_order_id = Fields.varchar()
     client_order_id = Fields.varchar()
     market_symbol = Fields.varchar()
