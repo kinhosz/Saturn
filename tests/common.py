@@ -13,13 +13,12 @@ def common():
     trading.lock_buy = False
     trading.lock_sell = False
     trading.allocation_percentage = 0.1
-    trading.percentage_to_buy = 0.99
     trading.percentage_to_sell = 1.01
-    trading.exchange_count = 0
     trading.save()
 
     brl_holding = Holding()
     brl_holding.user_id = user.id
+    brl_holding.wallet_id = trading.id
     brl_holding.amount = 100000.0
     brl_holding.base_symbol = 'BRL'
     brl_holding.price = 1.0
@@ -28,6 +27,7 @@ def common():
 
     btc_holding = Holding()
     btc_holding.user_id = user.id
+    btc_holding.wallet_id = trading.id
     btc_holding.amount = 1.0
     btc_holding.base_symbol = 'BTC'
     btc_holding.price = 100000.0
@@ -57,3 +57,13 @@ def create_quota(user_id, amount, price):
     quota.save()
 
     return quota
+
+def base_order() -> Trade:
+    order = Trade()
+    order.client_order_id = '123456'
+    order.market_symbol = 'btcbrl'
+    order.side = 'BUY'
+    order.market_type = 'LIMIT'
+    order.order_state = 'DRAFT'
+
+    return order

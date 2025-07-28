@@ -206,7 +206,7 @@ class UserSession(object):
   @_auth
   async def _getTradingInfo(self):
     user = User.find_by('telegram_chat_id', self._chat_id)
-    trading = Wallet.find_by('user_id', user.id)
+    wallet = Wallet.find_by('user_id', user.id)
     holdings: List[Holding] = Holding.where(user_id=[user.id])
     holding_in_brl = None
     holding_in_btc = None
@@ -221,26 +221,17 @@ class UserSession(object):
     btc_price = round(float(res[0]['close_price']), 2)
     btc_high = round(float(res[0]['highest_price']), 2)
     btc_low = round(float(res[0]['lowest_price']), 2)
-    btc_holding = round(holding_in_btc.amount, 8)
-    brl_holding = round(holding_in_brl.amount, 2)
-    btc_cost = round(holding_in_btc.price, 2)
-    brl_cost = round(holding_in_brl.price, 8)
-    brl_moving = round(brl_holding + btc_cost, 2)
-    brl_current_holding= round(brl_holding + btc_holding * btc_price, 2)
-    if brl_cost < MINIMUM_BTC_TRADING:
-      price_to_buy = 'Saldo insuficiente'
-    else:
-      price_to_buy = round((brl_holding/ brl_cost) * (trading.percentage_to_buy ** max(trading.exchange_count, 1.0)), 2)
-
-    if btc_holding < MINIMUM_BTC_TRADING:
-      price_to_sell = 'Saldo insuficiente'
-    else:
-      price_to_sell = round((btc_cost / btc_holding) * (trading.percentage_to_sell ** abs(min(trading.exchange_count, -1.0))), 2)
+    brl_market_value = holding_in_brl.amount + (btc_price * holding_in_btc.amount)
 
     self._sendManagerMessage(session.trading_info(
-      btc_price, btc_high, btc_low, price_to_sell, price_to_buy, btc_holding, btc_cost,
-      brl_holding, brl_cost, brl_current_holding, brl_moving
-    )) 
+      btc_price=btc_price,
+      btc_high=btc_high,
+      btc_low=btc_low,
+      btc_balance=round(holding_in_btc.amount, 8),
+      brl_balance=round(holding_in_brl.amount, 2),
+      brl_market_value=round(brl_market_value, 2),
+      brl_invested=round(wallet.invested_amount(), 2)
+    ))
 
   @_catch_error
   async def _getRepresentativeBTCPrice(self):

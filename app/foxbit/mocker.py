@@ -11,7 +11,7 @@ def mocker(func):
     ''' This decorator helps to development environment, avoiding
         making real authenticated requests'''
     async def wrapper(cls, method, url, headers, params, json):
-        if env_name() != 'development':
+        if env_name() == 'production':
             return await func(cls, method, url, headers, params, json)
 
         return handle_requests(method, url, headers, params, json)
