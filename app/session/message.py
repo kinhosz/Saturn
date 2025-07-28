@@ -50,9 +50,8 @@ def profile(username, active):
 
 def trading_info(
   btc_price, btc_high, btc_low,
-  price_to_sell, price_to_buy, btc_balance,
-  btc_cost, brl_balance, brl_cost, brl_current_balance,
-  brl_moving
+  btc_balance, brl_balance,
+  brl_market_value, brl_invested
 ):
   msg = "Trading\n\n"
   msg += "----------------\n"
@@ -60,17 +59,11 @@ def trading_info(
   msg += f"Máxima:\n{btc_high} BRL\n\n"
   msg += f"Mínima:\n{btc_low} BRL\n\n"
   msg += "----------------\n"
-  msg += f"Preço para venda:\n{price_to_sell} BRL\n\n"
-  msg += f"Preço para compra:\n{price_to_buy} BRL\n\n"
-  msg += "----------------\n"
   msg += f"Saldo atual(BTC):\n{btc_balance} BTC\n\n"
-  msg += f"Custo atual(BTC):\n{btc_cost} BRL\n\n"
+  msg += f"Saldo disponivel(BRL):\n{brl_balance} BRL\n\n"
   msg += "----------------\n"
-  msg += f"Saldo atual(BRL):\n{brl_balance} BRL\n\n"
-  msg += f"Custo atual(BRL):\n{brl_cost} BTC\n\n"
-  msg += "----------------\n"
-  msg += f"Saldo aproximado(BRL):\n{brl_current_balance} BRL\n\n"
-  msg += f"Saldo movimentado(BRL):\n{brl_moving} BRL\n"
+  msg += f"Saldo aproximado(BRL):\n{brl_market_value} BRL\n\n"
+  msg += f"Saldo investido(BRL):\n{brl_invested} BRL\n"
 
   return msg
 

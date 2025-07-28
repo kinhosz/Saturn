@@ -2,17 +2,7 @@ from app.models import Trade, Quota
 from app.foxbit import FServer
 
 from tests import float_compare
-from tests import common
-
-def base_order() -> Trade:
-    order = Trade()
-    order.client_order_id = '123456'
-    order.market_symbol = 'btcbrl'
-    order.side = 'BUY'
-    order.market_type = 'LIMIT'
-    order.order_state = 'DRAFT'
-
-    return order
+from tests import common, base_order
 
 def test_quotas_creation(db_connection):
     """ Test if the quotas has been created when the purchase

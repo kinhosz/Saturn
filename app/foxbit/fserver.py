@@ -1,4 +1,4 @@
-import asyncio
+import asyncio, logging
 from datetime import datetime, timezone
 from typing import List
 
@@ -9,6 +9,9 @@ from .constants import *
 from .messages import *
 from .utils import price_by_volume
 from ..services import *
+from ..constant import env_name
+
+logger = logging.getLogger(__name__)
 
 class FServer(object):
     def __init__(self):
@@ -20,8 +23,17 @@ class FServer(object):
     def setTelegramBuffer(self, buffer):
         self._telegram_buffer = buffer
 
+    def _addTelegramMessage(self, msg):
+        if self._telegram_buffer == None:
+            logger.warning('Telegram buffer has not been set')
+            if msg.get('data') and msg['data'].get('message'):
+                logger.warning(msg['data']['message'])
+        else:
+            self._telegram_buffer.push(msg)
+
     async def listen(self):
-        await self._rebase_price()
+        target_price = await self._rebased_price()
+        logger.info(f"Target Price: '%s' BRL", round(target_price, 2))
 
         while True:
             candlestick = await self._getCurrentPrice('btcbrl')
@@ -30,8 +42,9 @@ class FServer(object):
                 lowest_price = candlestick['lowest_price']
 
                 if candlestick['number_of_trades'] > 5:
-                    await self._perform_purchase(highest_price)
-                    await self._perform_sale(lowest_price)
+                    if highest_price < target_price:
+                        await self._perform_purchase(lowest_price)
+                    await self._perform_sale(highest_price)
 
                 await self._process_active_orders()
 
@@ -49,15 +62,9 @@ class FServer(object):
 
         return candlesticks[0]
 
-    async def _rebase_price(self):
-        holdings: List[Holding] = Holding.where(base_symbol=['BRL'])
+    async def _rebased_price(self):
         candlesticks = await self._foxbit.getCandlesticks(market_symbol='btcbrl', interval='15m', limit=500)
-
-        avg_price = price_by_volume(candlesticks)
-
-        for holding in holdings:
-            holding.price = holding.amount / avg_price
-            holding.save()
+        return price_by_volume(candlesticks)
 
     async def _createOrderLimit(self, side, quantity, price):
         client_order_id = str(generate_numeric_uuid())
@@ -68,22 +75,29 @@ class FServer(object):
         return res, code
 
     async def _execute_purchase_orders(self, price):
-        buyable_holdings = find_buyable_balances(price, MINIMUM_BTC_TRADING)
+        wallets = Wallet.where(lock_buy=[False])
         executed_orders = []
-        for holding in buyable_holdings:
-            quantity = holding['partial_amount'] / price
+        for wallet in wallets:
+            if not wallet.can_buy():
+                continue
+
+            partial_amount = wallet.buy_trade_amount()
+            quantity = partial_amount / price
+            if quantity < MINIMUM_BTC_TRADING:
+                continue
+
             res, code = await self._createOrderLimit(OrderSide.BUY.value, quantity, price)
             if code == 201:
                 executed_orders.append({
-                    'balance_id': holding['balance_id'],
-                    'user_id': holding['user_id'],
-                    'partial_price': holding['partial_price'],
-                    'partial_amount': holding['partial_amount'],
+                    'balance_id': wallet.cash_holding().id,
+                    'user_id': wallet.user_id.id,
+                    'partial_price': 0.0, # Not needed for side = BUY
+                    'partial_amount': partial_amount,
                     'foxbit_order_id': str(res['id']),
                     'client_order_id': str(res['client_order_id'])
                 })
             else:
-                print("Order Cancelled.\nCode[{}].\nResponse: {}".format(code, res))
+                logger.error(f"Order Cancelled.\nCode['%s]: '%s'", code, res)
 
         return executed_orders
 
@@ -115,7 +129,7 @@ class FServer(object):
         ts.lock_sell = True
         ts.save()
 
-        self._telegram_buffer.push({
+        self._addTelegramMessage({
             'from': 'foxbit',
             'data': {
                 'id': user.telegram_chat_id,
@@ -141,14 +155,7 @@ class FServer(object):
             holding.price -= order_json['partial_price']
             holding.save()
 
-            trading_setting = Wallet.find_by('user_id', order.user_id.id)
-            if side == 'BUY':
-                trading_setting.exchange_count += 1
-            else:
-                trading_setting.exchange_count = max(trading_setting.exchange_count - 1, 0)
-            trading_setting.save()
-
-            self._telegram_buffer.push({
+            self._addTelegramMessage({
                 'from': 'foxbit',
                 'data': {
                     'id': user.telegram_chat_id,
@@ -188,7 +195,7 @@ class FServer(object):
                 quota.quota_state = 'DONE'
                 quota.save()
             else:
-                print("Order Cancelled.\nCode[{}].\nResponse: {}".format(code, res))
+                logger.error(f"Order Cancelled.\nCode['%s]: '%s'", code, res)
 
         return executed_orders
 
@@ -207,7 +214,7 @@ class FServer(object):
         else:
             return None
 
-        self._telegram_buffer.push({
+        self._addTelegramMessage({
             'from': 'foxbit',
             'data': {
                 'id': user.telegram_chat_id,
@@ -257,7 +264,8 @@ class FServer(object):
         for order in active_orders:
             data, code = await self._foxbit.getOrder(order.foxbit_order_id)
             if code != 200:
-                print(f"Data: {data}\nCode: {code}")
+                logger.error(f"Data: '%s'", data)
+                logger.error(f"Code: '%s'", code)
                 continue
             order.update_from_foxbit(data)
             order.save()
