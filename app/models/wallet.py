@@ -21,12 +21,17 @@ class Wallet(Model):
 
     def invested_amount(self):
         holdings = self.env['holding'].where(wallet_id=[self.id])
+        trades = self.env['trade'].where(user_id=[self.user_id.id], order_state=['ACTIVE', 'PARTIALLY_FILLED'])
         amount = 0.0
         for holding in holdings:
             if holding.base_symbol == 'BRL':
                 amount += holding.amount
             elif holding.quote_symbol == 'BRL':
                 amount += holding.price
+
+        for trade in trades:
+            amount += trade.quantity * trade.price + trade.quantity_executed * trade.price_avg
+
         return amount
 
     def cash_amount(self):
