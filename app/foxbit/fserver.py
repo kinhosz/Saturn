@@ -43,8 +43,8 @@ class FServer(object):
 
                 if candlestick['number_of_trades'] > 5:
                     if highest_price < target_price:
-                        await self._perform_purchase(lowest_price)
-                    await self._perform_sale(highest_price)
+                        await self._perform_purchase(highest_price)
+                    await self._perform_sale(lowest_price)
 
                 await self._process_active_orders()
 
