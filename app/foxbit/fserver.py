@@ -13,6 +13,7 @@ from ..constant import env_name
 
 logger = logging.getLogger(__name__)
 
+
 class FServer(object):
     def __init__(self):
         self._foxbit = Foxbit()
@@ -25,9 +26,9 @@ class FServer(object):
 
     def _addTelegramMessage(self, msg):
         if self._telegram_buffer == None:
-            logger.warning('Telegram buffer has not been set')
-            if msg.get('data') and msg['data'].get('message'):
-                logger.warning(msg['data']['message'])
+            logger.warning("Telegram buffer has not been set")
+            if msg.get("data") and msg["data"].get("message"):
+                logger.warning(msg["data"]["message"])
         else:
             self._telegram_buffer.push(msg)
 
@@ -36,12 +37,12 @@ class FServer(object):
         logger.info(f"Target Price: '%s' BRL", round(target_price, 2))
 
         while True:
-            candlestick = await self._getCurrentPrice('btcbrl')
+            candlestick = await self._getCurrentPrice("btcbrl")
             if candlestick:
-                highest_price = candlestick['highest_price']
-                lowest_price = candlestick['lowest_price']
+                highest_price = candlestick["highest_price"]
+                lowest_price = candlestick["lowest_price"]
 
-                if candlestick['number_of_trades'] > 5:
+                if candlestick["number_of_trades"] > 5:
                     if highest_price < target_price:
                         await self._perform_purchase(highest_price)
                     await self._perform_sale(lowest_price)
@@ -52,9 +53,7 @@ class FServer(object):
 
     async def _getCurrentPrice(self, market_symbol):
         candlesticks = await self._foxbit.getCandlesticks(
-            market_symbol=market_symbol,
-            interval="5m",
-            limit=1
+            market_symbol=market_symbol, interval="5m", limit=1
         )
 
         if len(candlesticks) == 0:
@@ -63,7 +62,9 @@ class FServer(object):
         return candlesticks[0]
 
     async def _rebased_price(self):
-        candlesticks = await self._foxbit.getCandlesticks(market_symbol='btcbrl', interval='15m', limit=500)
+        candlesticks = await self._foxbit.getCandlesticks(
+            market_symbol="btcbrl", interval="15m", limit=500
+        )
         return price_by_volume(candlesticks)
 
     async def _createOrderLimit(self, side, quantity, price):
@@ -86,16 +87,20 @@ class FServer(object):
             if quantity < MINIMUM_BTC_TRADING:
                 continue
 
-            res, code = await self._createOrderLimit(OrderSide.BUY.value, quantity, price)
+            res, code = await self._createOrderLimit(
+                OrderSide.BUY.value, quantity, price
+            )
             if code == 201:
-                executed_orders.append({
-                    'balance_id': wallet.cash_holding().id,
-                    'user_id': wallet.user_id.id,
-                    'partial_price': 0.0, # Not needed for side = BUY
-                    'partial_amount': partial_amount,
-                    'foxbit_order_id': str(res['id']),
-                    'client_order_id': str(res['client_order_id'])
-                })
+                executed_orders.append(
+                    {
+                        "balance_id": wallet.cash_holding().id,
+                        "user_id": wallet.user_id.id,
+                        "partial_price": 0.0,  # Not needed for side = BUY
+                        "partial_amount": partial_amount,
+                        "foxbit_order_id": str(res["id"]),
+                        "client_order_id": str(res["client_order_id"]),
+                    }
+                )
             else:
                 logger.error(f"Order Cancelled.\nCode['%s]: '%s'", code, res)
 
@@ -104,95 +109,140 @@ class FServer(object):
     # TODO: Dead code
     async def _list_orders(self, start_time=None, end_time=None, order_side=None):
         if start_time:
-            start_time = start_time.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+            start_time = (
+                start_time.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[
+                    :-3
+                ]
+                + "Z"
+            )
         if end_time:
-            end_time = end_time.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+            end_time = (
+                end_time.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
+                + "Z"
+            )
         orders = []
         page = 1
 
         current_orders, code = await self._foxbit.listOrders(
-            start_time=start_time, end_time=None, page_size=100, page=1, market_symbol='btcbrl', side=order_side
+            start_time=start_time,
+            end_time=None,
+            page_size=100,
+            page=1,
+            market_symbol="btcbrl",
+            side=order_side,
         )
-        while code == 200 and len(current_orders['data']) > 0:
-            orders += current_orders['data']
+        while code == 200 and len(current_orders["data"]) > 0:
+            orders += current_orders["data"]
             page += 1
             current_orders, code = await self._foxbit.listOrders(
-                start_time=start_time, end_time=None, page_size=100, page=page, market_symbol='btcbrl', side=order_side
+                start_time=start_time,
+                end_time=None,
+                page_size=100,
+                page=page,
+                market_symbol="btcbrl",
+                side=order_side,
             )
 
         return orders
 
     def _lock_operations_for_security(self, user_id, data, code):
         user = User(user_id)
-        ts = Wallet.find_by('user_id', user.id)
+        ts = Wallet.find_by("user_id", user.id)
         ts.lock_buy = True
         ts.lock_sell = True
         ts.save()
 
-        self._addTelegramMessage({
-            'from': 'foxbit',
-            'data': {
-                'id': user.telegram_chat_id,
-                'message': lock_for_security(data, code)
+        self._addTelegramMessage(
+            {
+                "from": "foxbit",
+                "data": {
+                    "id": user.telegram_chat_id,
+                    "message": lock_for_security(data, code),
+                },
             }
-        })
+        )
 
     async def _handle_executed_orders(self, executed_orders, side):
         for order_json in executed_orders:
-            user = User(order_json['user_id'])
-            data, code = await self._foxbit.getOrder(order_json['foxbit_order_id'])
+            user = User(order_json["user_id"])
+            data, code = await self._foxbit.getOrder(order_json["foxbit_order_id"])
             if code != 200:
                 self._lock_operations_for_security(user.id, data, code)
                 continue
             order = Trade()
             order.update_from_foxbit(data)
-            order.order_state = 'ACTIVE'
-            order.user_id = order_json['user_id']
+            order.order_state = "ACTIVE"
+            order.user_id = order_json["user_id"]
             order.save()
 
-            holding = Holding(order_json['balance_id'])
-            holding.amount -= order_json['partial_amount']
-            holding.price -= order_json['partial_price']
+            holding = Holding(order_json["balance_id"])
+            holding.amount -= order_json["partial_amount"]
+            holding.price -= order_json["partial_price"]
             holding.save()
 
-            self._addTelegramMessage({
-                'from': 'foxbit',
-                'data': {
-                    'id': user.telegram_chat_id,
-                    'message': order_executed(side, order.quantity + order.quantity_executed, order.price)
+            self._addTelegramMessage(
+                {
+                    "from": "foxbit",
+                    "data": {
+                        "id": user.telegram_chat_id,
+                        "message": order_executed(
+                            side, order.quantity + order.quantity_executed, order.price
+                        ),
+                    },
                 }
-            })
+            )
 
     async def _perform_purchase(self, price):
         executed_orders = await self._execute_purchase_orders(price)
-        await self._handle_executed_orders(executed_orders, 'BUY')
+        await self._handle_executed_orders(executed_orders, "BUY")
+
+    def _get_discounted_price(self, quota):
+        """Aplica 1% de desconto por dia após 7 dias presa."""
+        base_price = quota.price
+        days_held = (datetime.now() - quota.created_at).days
+
+        if days_held > 7:
+            discount_days = days_held - 7
+            discount = discount_days * 0.01
+            discount = min(discount, 0.9)
+
+            return base_price * (1 - discount)
+
+        return base_price
 
     async def _execute_sale_orders(self, price):
         executed_orders = []
-        quotas: List[Quota] = Quota.where(quota_state=['ACTIVE'])
+        quotas: List[Quota] = Quota.where(quota_state=["ACTIVE"])
 
         for quota in quotas:
-            trading_setting = Wallet.find_by('user_id', quota.user_id.id)
-            price_for_sell = (quota.price * trading_setting.percentage_to_sell)
+            trading_setting = Wallet.find_by("user_id", quota.user_id.id)
+            adjusted_price = self._get_discounted_price(quota)
+            price_for_sell = adjusted_price * trading_setting.percentage_to_sell
 
             if price_for_sell > price:
                 continue
 
-            holdings: List[Holding] = Holding.where(user_id=[quota.user_id.id], base_symbol=['BTC'])
+            holdings: List[Holding] = Holding.where(
+                user_id=[quota.user_id.id], base_symbol=["BTC"]
+            )
 
-            res, code = await self._createOrderLimit(OrderSide.SELL.value, quota.amount, price)
+            res, code = await self._createOrderLimit(
+                OrderSide.SELL.value, quota.amount, price
+            )
             if code == 201:
-                partial_price = quota.amount * quota.price
+                partial_price = quota.amount * adjusted_price
 
-                executed_orders.append({
-                    'balance_id': holdings[0].id,
-                    'user_id': quota.user_id.id,
-                    'partial_amount': quota.amount,
-                    'partial_price': partial_price,
-                    'foxbit_order_id': str(res['id']),
-                    'client_order_id': str(res['client_order_id'])
-                })
-                quota.quota_state = 'DONE'
+                executed_orders.append(
+                    {
+                        "balance_id": holdings[0].id,
+                        "user_id": quota.user_id.id,
+                        "partial_amount": quota.amount,
+                        "partial_price": partial_price,
+                        "foxbit_order_id": str(res["id"]),
+                        "client_order_id": str(res["client_order_id"]),
+                    }
+                )
+                quota.quota_state = "DONE"
                 quota.save()
             else:
                 logger.error(f"Order Cancelled.\nCode['%s]: '%s'", code, res)
@@ -201,56 +251,64 @@ class FServer(object):
 
     async def _perform_sale(self, price):
         executed_orders = await self._execute_sale_orders(price)
-        await self._handle_executed_orders(executed_orders, 'SELL')
+        await self._handle_executed_orders(executed_orders, "SELL")
 
     def _notify_order_done(self, order: Trade):
         user = User(order.user_id.id)
-        if order.order_state == 'CANCELED':
-            msg = order_cancelled(order.quantity, order.price_avg, order.cancellation_reason)
-        elif order.order_state == 'FILLED':
+        if order.order_state == "CANCELED":
+            msg = order_cancelled(
+                order.quantity, order.price_avg, order.cancellation_reason
+            )
+        elif order.order_state == "FILLED":
             msg = order_filled(order.quantity_executed, order.price_avg)
-        elif order.order_state == 'PARTIALLY_CANCELED':
-            msg = order_partially_cancelled(order.quantity, order.quantity_executed, order.price_avg, order.cancellation_reason)
+        elif order.order_state == "PARTIALLY_CANCELED":
+            msg = order_partially_cancelled(
+                order.quantity,
+                order.quantity_executed,
+                order.price_avg,
+                order.cancellation_reason,
+            )
         else:
             return None
 
-        self._addTelegramMessage({
-            'from': 'foxbit',
-            'data': {
-                'id': user.telegram_chat_id,
-                'message': msg
-            }
-        })
+        self._addTelegramMessage(
+            {"from": "foxbit", "data": {"id": user.telegram_chat_id, "message": msg}}
+        )
 
     def _refund_order(self, order: Trade):
-        if order.side == 'BUY': # TODO: quantity_executed includes fee_paid?
+        if order.side == "BUY":  # TODO: quantity_executed includes fee_paid?
             btc_amount = order.quantity_executed - order.fee_paid
-            btc_amount_cost = order.quantity_executed * order.price_avg # taxes included
+            btc_amount_cost = (
+                order.quantity_executed * order.price_avg
+            )  # taxes included
             brl_amount = order.quantity * order.price
             brl_amount_cost = order.quantity
-        elif order.side == 'SELL':
+        elif order.side == "SELL":
             brl_amount = order.quantity_executed * order.price_avg - order.fee_paid
-            brl_amount_cost = order.quantity_executed # taxes included
+            brl_amount_cost = order.quantity_executed  # taxes included
             btc_amount = order.quantity
             btc_amount_cost = order.quantity * order.price
 
-        if order.side == 'BUY' and order.order_state in ['PARTIALLY_CANCELED', 'FILLED']:
-            price = btc_amount_cost / btc_amount # taxes included
+        if order.side == "BUY" and order.order_state in [
+            "PARTIALLY_CANCELED",
+            "FILLED",
+        ]:
+            price = btc_amount_cost / btc_amount  # taxes included
             quota = Quota()
             quota.purchase_order_id = order.id
             quota.amount = btc_amount
             quota.price = price
             quota.user_id = order.user_id.id
             quota.created_at = datetime.now()
-            quota.quota_state = 'ACTIVE'
+            quota.quota_state = "ACTIVE"
             quota.save()
 
-        holdings: List[Holding] = Holding.where(user_id = [order.user_id.id])
+        holdings: List[Holding] = Holding.where(user_id=[order.user_id.id])
         for holding in holdings:
-            if holding.base_symbol == 'BTC' and holding.quote_symbol == 'BRL':
+            if holding.base_symbol == "BTC" and holding.quote_symbol == "BRL":
                 holding.amount += btc_amount
                 holding.price += btc_amount_cost
-            elif holding.base_symbol == 'BRL' and holding.quote_symbol == 'BTC':
+            elif holding.base_symbol == "BRL" and holding.quote_symbol == "BTC":
                 holding.amount += brl_amount
                 holding.price += brl_amount_cost
             else:
@@ -259,7 +317,9 @@ class FServer(object):
             holding.save()
 
     async def _process_active_orders(self):
-        active_orders: List[Trade] = Trade.where(order_state=['PARTIALLY_FILLED', 'ACTIVE'])
+        active_orders: List[Trade] = Trade.where(
+            order_state=["PARTIALLY_FILLED", "ACTIVE"]
+        )
 
         for order in active_orders:
             data, code = await self._foxbit.getOrder(order.foxbit_order_id)
@@ -270,7 +330,7 @@ class FServer(object):
             order.update_from_foxbit(data)
             order.save()
 
-            if order.order_state not in ['CANCELED', 'FILLED', 'PARTIALLY_CANCELED']:
+            if order.order_state not in ["CANCELED", "FILLED", "PARTIALLY_CANCELED"]:
                 continue
 
             self._notify_order_done(order)
