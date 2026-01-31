@@ -230,7 +230,7 @@ class FServer(object):
                 OrderSide.SELL.value, quota.amount, price
             )
             if code == 201:
-                partial_price = quota.amount * adjusted_price
+                partial_price = quota.amount * quota.price
 
                 executed_orders.append(
                     {
