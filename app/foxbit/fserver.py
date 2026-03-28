@@ -185,7 +185,7 @@ class FServer(object):
 
             res, code = await self._createOrderLimit(OrderSide.SELL.value, quota.amount, price)
             if code == 201:
-                partial_price = quota.amount * quota.price
+                partial_price = quota.amount * price
 
                 executed_orders.append({
                     'balance_id': holdings[0].id,
