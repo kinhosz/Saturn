@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE wallet
+ADD COLUMN liquidation_rate DOUBLE PRECISION DEFAULT 0.9;
+
+COMMIT;

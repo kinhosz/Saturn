@@ -14,6 +14,7 @@ class Wallet(Model):
     lock_sell = Fields.boolean()
     allocation_percentage = Fields.double()
     percentage_to_sell = Fields.double()
+    liquidation_rate = Fields.double()
     buy_window = Fields.integer()
 
     def cash_holding(self):
