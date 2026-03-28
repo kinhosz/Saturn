@@ -1,8 +1,9 @@
-from app.models import Trade, Quota
+import pytest
+from app.models import Quota
 from app.foxbit import FServer
 
 from tests import float_compare
-from tests import common, base_order
+from tests import common, create_quota, base_order
 
 def test_quotas_creation(db_connection):
     """ Test if the quotas has been created when the purchase
@@ -89,3 +90,18 @@ def test_quotas_creation(db_connection):
             assert float_compare(quota.amount, order2.quantity_executed - order2.fee_paid) == 0, \
                 "The quota's amount must be the same of the executed quantity for an order, excluding the fee paid"
             assert float_compare(quota.price, order2.price_avg) == 1, "The quota price must be higher than the average order price"
+
+@pytest.mark.asyncio
+async def test_quotas_liquidation(db_connection):
+    user = common()
+    create_quota(user.id, 1.0, 100000.0)
+
+    fserver = FServer()
+
+    await fserver._perform_sale(95000.0)
+    quotas = Quota.where(quota_state=['ACTIVE'])
+    assert len(quotas) == 1, "The current price is currently in maintain mode"
+
+    await fserver._perform_sale(85000.0)
+    quotas = Quota.where(quota_state=['ACTIVE'])
+    assert len(quotas) == 0, "The current price is lower than liquidation rate"

@@ -14,6 +14,7 @@ def common():
     trading.lock_sell = False
     trading.allocation_percentage = 0.1
     trading.percentage_to_sell = 1.01
+    trading.liquidation_rate = 0.90
     trading.save()
 
     brl_holding = Holding()

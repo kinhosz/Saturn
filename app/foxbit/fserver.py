@@ -174,8 +174,11 @@ class FServer(object):
         for quota in quotas:
             trading_setting = Wallet.find_by('user_id', quota.user_id.id)
             price_for_sell = (quota.price * trading_setting.percentage_to_sell)
+            liquidation_price = (quota.price * trading_setting.liquidation_rate)
 
-            if price_for_sell > price:
+            must_mantain = (price >= liquidation_price and price <= price_for_sell)
+
+            if must_mantain:
                 continue
 
             holdings: List[Holding] = Holding.where(user_id=[quota.user_id.id], base_symbol=['BTC'])
