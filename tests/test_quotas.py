@@ -1,4 +1,6 @@
 import pytest
+from datetime import datetime, timedelta
+
 from app.models import Quota
 from app.foxbit import FServer
 
@@ -94,14 +96,26 @@ def test_quotas_creation(db_connection):
 @pytest.mark.asyncio
 async def test_quotas_liquidation(db_connection):
     user = common()
-    create_quota(user.id, 1.0, 100000.0)
+    quota = create_quota(user.id, 1.0, 100000.0)
 
     fserver = FServer()
 
     await fserver._perform_sale(95000.0)
     quotas = Quota.where(quota_state=['ACTIVE'])
-    assert len(quotas) == 1, "The current price is currently in maintain mode"
+    assert len(quotas) == 1, "We must not sell a quota when the market price is above the liquidation price"
 
     await fserver._perform_sale(85000.0)
     quotas = Quota.where(quota_state=['ACTIVE'])
-    assert len(quotas) == 0, "The current price is lower than liquidation rate"
+    assert len(quotas) == 1, "The current price is lower than liquidation rate, but it is a recent created quota"
+
+    # Setting to be an older quota
+    quota.created_at -= timedelta(days=60)
+    quota.save()
+
+    await fserver._perform_sale(95000.0)
+    quotas = Quota.where(quota_state=['ACTIVE'])
+    assert len(quotas) == 1, "The quota is old, but the market price is higher than the liquidation price"
+
+    await fserver._perform_sale(85000.0)
+    quotas = Quota.where(quota_state=['ACTIVE'])
+    assert len(quotas) == 0, "The market price is below the liquidation price AND the quota is old"

@@ -176,7 +176,10 @@ class FServer(object):
             price_for_sell = (quota.price * trading_setting.percentage_to_sell)
             liquidation_price = (quota.price * trading_setting.liquidation_rate)
 
-            must_mantain = (price >= liquidation_price and price <= price_for_sell)
+            quota_creation_diff = (datetime.now() - quota.created_at).days
+            QUOTA_SAFE_PERIOD_ALIVE = 30 # 30 days
+
+            must_mantain = ((price >= liquidation_price or quota_creation_diff <= QUOTA_SAFE_PERIOD_ALIVE)  and price <= price_for_sell)
 
             if must_mantain:
                 continue
