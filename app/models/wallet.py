@@ -2,14 +2,16 @@ from datetime import datetime, timedelta
 from orm import Fields, Model
 
 from typing import TYPE_CHECKING, List
+
 if TYPE_CHECKING:
     from . import TypedEnv
 
+
 class Wallet(Model):
-    _table = 'wallet'
+    _table = "wallet"
 
     id = Fields.id()
-    user_id = Fields.reference('res_user')
+    user_id = Fields.reference("res_user")
     lock_buy = Fields.boolean()
     lock_sell = Fields.boolean()
     allocation_percentage = Fields.double()
@@ -18,20 +20,26 @@ class Wallet(Model):
     buy_window = Fields.integer()
 
     def cash_holding(self):
-        return self.env['holding'].where(wallet_id=[self.id], base_symbol=['BRL'])[0]
+        return self.env["holding"].where(wallet_id=[self.id], base_symbol=["BRL"])[0]
 
     def invested_amount(self):
-        holdings = self.env['holding'].where(wallet_id=[self.id])
-        trades = self.env['trade'].where(user_id=[self.user_id.id], order_state=['ACTIVE', 'PARTIALLY_FILLED'])
+        holdings = self.env["holding"].where(wallet_id=[self.id])
+        trades = self.env["trade"].where(
+            user_id=[self.user_id.id], order_state=["ACTIVE", "PARTIALLY_FILLED"]
+        )
         amount = 0.0
         for holding in holdings:
-            if holding.base_symbol == 'BRL':
+            if holding.base_symbol == "BRL":
                 amount += holding.amount
-            elif holding.quote_symbol == 'BRL':
+            elif holding.quote_symbol == "BRL":
                 amount += holding.price
 
         for trade in trades:
-            amount += trade.quantity * trade.price + trade.quantity_executed * trade.price_avg
+            if trade.side == "BUY":
+                if trade.order_state == "ACTIVE":
+                    amount += trade.quantity * trade.price
+                elif trade.order_state == "PARTIALLY_FILLED":
+                    amount += (trade.quantity - trade.quantity_executed) * trade.price
 
         return amount
 
@@ -51,24 +59,23 @@ class Wallet(Model):
         return last_buy_window < datetime.now()
 
     def _last_buy_date(self):
-        trades = self.env['trade'].where(side=['BUY'], user_id=[self.user_id.id])
-        last_date = datetime.fromisoformat('2000-01-01')
+        trades = self.env["trade"].where(side=["BUY"], user_id=[self.user_id.id])
+        last_date = datetime.fromisoformat("2000-01-01")
         for trade in trades:
             if not trade.created_at:
                 trade.created_at = datetime.now()
             last_date = max(last_date, trade.created_at)
         return last_date
 
-
     ################ Type Checking ######################
     @property
-    def env(self) -> 'TypedEnv':
+    def env(self) -> "TypedEnv":
         return super().env
 
     @classmethod
-    def find_by(cls, k, v) -> 'Wallet':
+    def find_by(cls, k, v) -> "Wallet":
         return super().find_by(k, v)
 
     @classmethod
-    def where(cls, **kwargs) -> List['Wallet']:
+    def where(cls, **kwargs) -> List["Wallet"]:
         return super().where(**kwargs)
